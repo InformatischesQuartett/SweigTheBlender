@@ -52,14 +52,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Generated\CppApi.cs" />
-    <Compile Include="Generated\CppApiPINVOKE.cs" />
-    <Compile Include="Generated\CppApiXX.cs" />
-    <Compile Include="Generated\Foo.cs" />
-    <Compile Include="Generated\Vector_POD.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Generated\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
