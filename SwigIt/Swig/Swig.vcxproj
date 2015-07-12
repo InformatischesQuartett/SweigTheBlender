@@ -70,7 +70,7 @@
     <CustomBuildStep>
       <Command>C:\swigwin-3.0.5\swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppWrapper.dll -outdir ../CsWrapper/Generated -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
       <Message>Doing the SWIG</Message>
-      <Outputs>../CppWrapper/C4dApiWrapper.cpp</Outputs>
+      <Outputs>../CppWrapper/BlenderApiWrapper.cpp</Outputs>
       <Inputs> $(ProjectDir)CppApi.i</Inputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
