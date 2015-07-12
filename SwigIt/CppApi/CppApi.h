@@ -38,6 +38,7 @@ struct Vector_POD
 	float x, y, z;
 };
 
+#include <array>
 
 class CPP_API_EXIM CppApiXX
 {

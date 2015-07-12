@@ -41,7 +41,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Fusee.Math.Core">
-      <HintPath>..\..\..\..\Documents\GitHub\FuseeProjekt\Fusee\Bin\Debug\Fusee.Math.Core.dll</HintPath>
+      <HintPath>..\..\..\Fusee\Bin\Debug\Fusee.Math.Core.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

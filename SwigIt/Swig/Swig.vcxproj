@@ -51,6 +51,7 @@
     <CustomBuildAfterTargets>Build</CustomBuildAfterTargets>
     <TargetExt>
     </TargetExt>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <CustomBuildAfterTargets>Build</CustomBuildAfterTargets>

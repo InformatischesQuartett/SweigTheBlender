@@ -21,7 +21,7 @@ Vector_POD CppApiXX::TestArrayOut()
 Vector_POD CppApiXX::TestArrayInOut(Vector_POD myArray)
 {
 	std::cout << "Vector testArrayInOut(Vector myArray)" << std::endl;
-	Vector_POD retval = Vector_POD( 1.1f, 2.2f, 3.3f );
+	Vector_POD retval = Vector_POD( myArray.x, myArray.y, myArray.z );
 	return retval;
 }
 
@@ -32,3 +32,4 @@ Vector_POD CppApiXX::FooInArrayOut(Foo f)
 	Vector_POD retval = Vector_POD(1.0f, 2.0f, 3.0f);
 	return retval;
 }
+
