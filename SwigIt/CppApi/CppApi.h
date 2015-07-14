@@ -40,6 +40,7 @@ struct Vector_POD
 
 #include <array>
 #include <vector>
+#include <map>
 
 class CPP_API_EXIM CppApiXX
 {
@@ -53,6 +54,8 @@ public:
 	void default_value(const std::string& value);
 
 	std::vector<int> createV3(int vx, int vy, int vz);
+
+	std::map<std::string, int> properties();
 };
 
 

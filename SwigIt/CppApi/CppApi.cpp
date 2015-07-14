@@ -55,3 +55,13 @@ std::vector<int> CppApiXX::createV3(int vx, int vy, int vz)
 	return ret;
 }
 
+std::map<std::string, int> CppApiXX::properties()
+{
+	std::cout << "std::map<std::string, int>" << std::endl;
+	std::map<std::string, int> ret;
+	ret["first"] = 1;
+	ret["second"] = 2;
+	ret["third"] = 3;
+	return ret;
+}
+

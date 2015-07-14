@@ -17,12 +17,19 @@
 %include "std_string.i"
 
 
-//This converts std::Vectoir<int> in to a class called IntVector
+//This converts std::Vector<int> in to a class called IntVector
 // IntVector implemnts IEnumerable<> and IList<>#
 // It would be nice if it was possible to use directly List<int> on the C# side instead of IntVector 
 %include "std_vector.i"
 %template(IntVector) std::vector<int>;
+%template(DoubleVector) std::vector<double>;
 
+
+/This converts std::map<string, int> in to a class called String_Int_Map
+// "The C# wrapper is made to look and feel like a C# System.Collections.Generic.IDictionary<>." [ref: std_map.i]
+// TODO: std::map<std::string, Foo> / TODO: std::map<std::string, T> | T can be any self defined class i.e. Foo
+%include "std_map.i"
+%template(String_Int_Map) std::map<std::string, int>;
 
 
 
