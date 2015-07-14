@@ -11,11 +11,19 @@
 #include "CppApi.h"
 
 %}
-
 %include <windows.i>
 
 /* converting std::string */
 %include "std_string.i"
+
+
+//This converts std::Vectoir<int> in to a class called IntVector
+// IntVector implemnts IEnumerable<> and IList<>#
+// It would be nice if it was possible to use directly List<int> on the C# side instead of IntVector 
+%include "std_vector.i"
+%template(IntVector) std::vector<int>;
+
+
 
 
 // Map Vector_POD   TO   Fusee.Math.float3

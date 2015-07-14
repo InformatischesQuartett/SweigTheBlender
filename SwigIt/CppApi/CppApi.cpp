@@ -45,3 +45,13 @@ void CppApiXX::default_value(const std::string& value)
 	std::cout << "default_value(const std::string& value)" << std::endl;
 }
 
+std::vector<int> CppApiXX::createV3(int vx, int vy, int vz)
+{
+	std::vector<int> ret;
+	ret.push_back(vx);
+	ret.push_back(vy);
+	ret.push_back(vz);
+	std::cout << "Created: " << ret.at(0) << " , "<<ret.at(1)<<" , "<<ret.at(2) << std::endl;
+	return ret;
+}
+
