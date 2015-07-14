@@ -19,8 +19,10 @@ namespace CsClient
             ret = cppapixx.FooInArrayOut(new CppApiWrapper.Foo());
             Console.WriteLine("(x=" + ret.x + "; y=" + ret.x + "; z=" + ret.z + ")");
             Console.WriteLine("(x=" + ret.x + "; y=" + ret.x + "; z=" + ret.z + ")");
-  
-            
+
+            var bla = cppapixx.default_value();
+            var s = "narf";
+            cppapixx.default_value(s);
             Console.ReadKey();
         }
     }

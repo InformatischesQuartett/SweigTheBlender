@@ -33,3 +33,15 @@ Vector_POD CppApiXX::FooInArrayOut(Foo f)
 	return retval;
 }
 
+std::string CppApiXX::default_value()
+{
+	std::cout << "default_value()" << std::endl;
+	std::string retval = "defalut_Value";
+	return retval;
+}
+
+void CppApiXX::default_value(const std::string& value)
+{
+	std::cout << "default_value(const std::string& value)" << std::endl;
+}
+

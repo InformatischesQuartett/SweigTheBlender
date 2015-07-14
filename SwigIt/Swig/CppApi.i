@@ -14,6 +14,9 @@
 
 %include <windows.i>
 
+/* converting std::string */
+%include "std_string.i"
+
 
 // Map Vector_POD   TO   Fusee.Math.float3
 %typemap(cstype, out="Fusee.Math.float3 /* Vector_POD_cstype_out */") Vector_POD "Fusee.Math.float3 /* Vector_POD_cstype */"

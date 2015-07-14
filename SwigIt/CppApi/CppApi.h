@@ -47,6 +47,9 @@ public:
 	Vector_POD TestArrayOut();
 	Vector_POD TestArrayInOut(Vector_POD myArray);
 	Vector_POD FooInArrayOut(Foo f);
+
+	std::string default_value();
+	void default_value(const std::string& value);
 };
 
 
