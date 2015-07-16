@@ -25,7 +25,7 @@
 %template(DoubleVector) std::vector<double>;
 
 
-/This converts std::map<string, int> in to a class called String_Int_Map
+//This converts std::map<string, int> in to a class called String_Int_Map
 // "The C# wrapper is made to look and feel like a C# System.Collections.Generic.IDictionary<>." [ref: std_map.i]
 // TODO: std::map<std::string, Foo> / TODO: std::map<std::string, T> | T can be any self defined class i.e. Foo
 %include "std_map.i"
