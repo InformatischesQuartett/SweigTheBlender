@@ -13,6 +13,7 @@
 %}
 %include <windows.i>
 
+
 /* converting std::string */
 %include "std_string.i"
 
@@ -83,6 +84,61 @@
       Fusee.Math.float3 ret = $imcall;$excode
       return ret;
    } /* <Vector_POD_csvarout> */ %}
+
+
+
+
+
+// Map std::array<float, 3>   TO   Fusee.Math.float3
+%typemap(cstype, out="Fusee.Math.float3 /* std::array<float, 3>_cstype_out */") std::array<float, 3> "Fusee.Math.float3 /* std::array<float, 3>_cstype */"
+%typemap(csout, excode=SWIGEXCODE) std::array<float, 3> 
+%{ {  /* <std::array<float, 3>_csout> */
+      Fusee.Math.float3 ret = $imcall;$excode
+      return ret;
+   } /* <std::array<float, 3>_csout> */ %}
+%typemap(imtype, out="Fusee.Math.float3 /* std::array<float, 3>_imtype_out */") std::array<float, 3> "Fusee.Math.float3 /* std::array<float, 3>_imtype */"
+%typemap(ctype, out="std::array<float, 3> /* std::array<float, 3>_ctype_out */") std::array<float, 3> "std::array<float, 3> /* std::array<float, 3>_ctype */"
+%typemap(directorout) std::array<float, 3>
+%{ /* <std::array<float, 3>_directorout> */
+   $result = *((std::array<float, 3> *)&($input)); 
+   /* </std::array<float, 3>_directorout> */
+ %}
+%typemap(directorin) std::array<float, 3> 
+%{ /* <std::array<float, 3>_directorin> */
+   $input = *((std::array<float, 3> *)&($1)); 
+   /* </std::array<float, 3>_directorin> */ 
+%}
+%typemap(out, null="std::array<float, 3>()")    std::array<float, 3>
+%{ 
+	/* Fusee.Math.float3 out*/
+	$result = $1;
+	/* Fusee.Math.float3 out*/
+%}
+%typemap(in) std::array<float, 3> 
+%{
+	/* <std::array<float, 3>_in> */
+	$1 = *((std::array<float, 3> *)&($input));
+	/* </std::array<float, 3>_in> */
+%}
+%typemap(csin) std::array<float, 3> "$csinput /* std::array<float, 3>_csin */"
+%typemap(csdirectorin, 
+   pre="/* NOP std::array<float, 3>_csdirectorin_pre */"
+  ) std::array<float, 3>
+  "$iminput /* std::array<float, 3>_csdirectorin */"
+%typemap(csdirectorout) std::array<float, 3> "$cscall /* std::array<float, 3>_csdirectorout */"
+%typemap(csvarin) std::array<float, 3> %{
+    /* <std::array<float, 3>_csvarin> */
+    set 
+	{
+      $imcall;$excode
+    }  /* </std::array<float, 3>_csvarin> */  %}
+%typemap(csvarout) std::array<float, 3> %{ 
+   /* <std::array<float, 3>_csvarout> */
+   get
+   {  
+      Fusee.Math.float3 ret = $imcall;$excode /*Fusee.Math.float3 ret = $imcall*/
+      return ret;
+   } /* <std::array<float, 3>_csvarout> */ %}
 
 
 

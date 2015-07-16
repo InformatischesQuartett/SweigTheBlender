@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CppApiWrapper;
 using Fusee.Math;
 
 namespace CsClient
@@ -35,6 +36,9 @@ namespace CsClient
             var retmap = map.TryGetValue("first", out val);
             Console.WriteLine("map= " + map+ " val= " + val+ " retmap= " + retmap);
 
+            cppapixx.TestArrayInObsolete(ret);
+            var t = cppapixx.TestArrayOutObsolete();
+            t = cppapixx.FooInArrayOutObsolete(new Foo());
             Console.ReadKey();
 
 

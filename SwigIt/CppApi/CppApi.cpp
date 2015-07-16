@@ -65,3 +65,21 @@ std::map<std::string, int> CppApiXX::properties()
 	return ret;
 }
 
+void CppApiXX::TestArrayInObsolete(std::array<float, 3> a)
+{
+	std::cout << "void TestArrayInObsolete(std::array<float, 3>)" << std::endl;
+}
+
+std::array<float, 3> CppApiXX::TestArrayOutObsolete()
+{
+	std::cout << "std::array<float, 3> TestArrayOutObsolete" << std::endl;
+	std::array<float, 3> retval = { 1.1f, 2.2f, 3.3f };
+	return retval;
+}
+
+std::array<float, 3> CppApiXX::FooInArrayOutObsolete(Foo f)
+{
+	std::cout << "std::array<float, 3> FooInArrayOutObsolete(Foo f)" << std::endl;
+	std::array<float, 3> retval = { 1.1f, 2.2f, 3.3f };
+	return retval;
+}

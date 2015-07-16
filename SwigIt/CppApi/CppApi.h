@@ -56,6 +56,11 @@ public:
 	std::vector<int> createV3(int vx, int vy, int vz);
 
 	std::map<std::string, int> properties();
+
+	void TestArrayInObsolete(std::array<float, 3> a);
+	std::array<float,3> TestArrayOutObsolete();
+
+	std::array<float, 3> FooInArrayOutObsolete(Foo f);
 };
 
 
