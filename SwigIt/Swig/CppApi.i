@@ -9,13 +9,43 @@
 %{
 /* Includes the header in the wrapper code */
 #include "CppApi.h"
+//#include "uniplug_blender_api.h"
 
 %}
 %include <windows.i>
-
-
 /* converting std::string */
 %include "std_string.i"
+
+
+//Ignore
+// string_to_* or *_to_string 
+
+//%rename("%(regex:/(\\w+)_(.*)/\\u\\3/)")"";
+
+%rename("%(regex:/^(.*)((to_test()))/\\2/)s") $ignore;
+//%ignore to_test;
+
+
+
+/*renaming everthing that ends with to_string*/
+//%rename("%(regex:/^(.*)((to_string()))/\3/)s") "";
+
+/*ignoring everthing that starts with string_to*/
+//%rename("%(regex:/^((string_to)(.*))/\/)s") "";
+
+/*ignoring everthing that starts with string_to*/
+//%rename("%(regex:/^((.*)(string_to)(.*))/\/)s")"";
+
+//%rename("%(regex:/^(.*)((string_to).*)/\\2/)s\S\*") "";
+//%rename("%(regex:/^(.*)((string_to).*)/\\2/)s") "";
+
+//%rename("%(regex:/^.(string_to).*)/\\3/)s") "";
+//%rename("%(regex:/(\\w+)_(.*)/\\u\\2/)") "bla";
+//%rename("%(regex:/pre(?!EVT)(.*)/\\1/)s") "";
+
+//%ignore  wegdamit:
+
+
 
 
 //This converts std::Vector<int> in to a class called IntVector
@@ -23,7 +53,10 @@
 // It would be nice if it was possible to use directly List<int> on the C# side instead of IntVector 
 %include "std_vector.i"
 %template(IntVector) std::vector<int>;
+%template(FloatVector) std::vector<float>;
 %template(DoubleVector) std::vector<double>;
+
+
 
 
 //This converts std::map<string, int> in to a class called String_Int_Map
@@ -31,7 +64,7 @@
 // TODO: std::map<std::string, Foo> / TODO: std::map<std::string, T> | T can be any self defined class i.e. Foo
 %include "std_map.i"
 %template(String_Int_Map) std::map<std::string, int>;
-
+%template(Int_String_Map) std::map<int, std::string>;
 
 
 // Map Vector_POD   TO   Fusee.Math.float3
@@ -86,6 +119,57 @@
    } /* <Vector_POD_csvarout> */ %}
 
 
+
+   // Map VFloat3   TO   Fusee.Math.float3
+%typemap(cstype, out="Fusee.Math.float3 /* VFloat3_cstype_out */") VFloat3 "Fusee.Math.float3 /* VFloat3_cstype */"
+%typemap(csout, excode=SWIGEXCODE) VFloat3 
+%{ {  /* <VFloat3_csout> */
+      Fusee.Math.float3 ret = $imcall;$excode
+      return ret;
+   } /* <VFloat3_csout> */ %}
+%typemap(imtype, out="Fusee.Math.float3 /* VFloat3_imtype_out */") VFloat3 "Fusee.Math.float3 /* VFloat3_imtype */"
+%typemap(ctype, out="VFloat3 /* VFloat3_ctype_out */") VFloat3 "VFloat3 /* VFloat3_ctype */"
+%typemap(directorout) VFloat3
+%{ /* <VFloat3_directorout> */
+   $result = *((VFloat3 *)&($input)); 
+   /* </VFloat3_directorout> */
+ %}
+%typemap(directorin) VFloat3 
+%{ /* <VFloat3_directorin> */
+   $input = *((VFloat3 *)&($1)); 
+   /* </VFloat3_directorin> */ 
+%}
+%typemap(out, null="VFloat3()")    VFloat3
+%{ 
+	/* VFloat3 out*/
+	$result = $1;
+	/* VFloat3 out*/
+%}
+%typemap(in) VFloat3 
+%{
+	/* <VFloat3_in> */
+	$1 = *((VFloat3 *)&($input));
+	/* </VFloat3_in> */
+%}
+%typemap(csin) VFloat3 "$csinput /* VFloat3_csin */"
+%typemap(csdirectorin, 
+   pre="/* NOP VFloat3_csdirectorin_pre */"
+  ) VFloat3
+  "$iminput /* VFloat3_csdirectorin */"
+%typemap(csdirectorout) VFloat3 "$cscall /* VFloat3_csdirectorout */"
+%typemap(csvarin) VFloat3 %{
+    /* <VFloat3_csvarin> */
+    set 
+	{
+      $imcall;$excode
+    }  /* </VFloat3_csvarin> */  %}
+%typemap(csvarout) VFloat3 %{ 
+   /* <VFloat3_csvarout> */
+   get
+   {  
+      Fusee.Math.float3 ret = $imcall;$excode
+      return ret;
+   } /* <VFloat3_csvarout> */ %}
 
 
 
@@ -143,5 +227,5 @@
 
 
 %include "CppApi.h";
-
+//%include "uniplug_blender_api.h";
 

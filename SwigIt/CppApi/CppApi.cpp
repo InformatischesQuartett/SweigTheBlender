@@ -55,6 +55,14 @@ std::vector<int> CppApiXX::createV3(int vx, int vy, int vz)
 	return ret;
 }
 
+std::vector<int> CppApiXX::createList(std::vector<int> in)
+{
+	std::vector<int> ret = in;
+	
+	std::cout << "createList: " << ret.at(0) << " , " << ret.at(1) << " , " << ret.at(2) << std::endl;
+	return ret;
+}
+
 std::map<std::string, int> CppApiXX::properties()
 {
 	std::cout << "std::map<std::string, int>" << std::endl;
@@ -62,6 +70,17 @@ std::map<std::string, int> CppApiXX::properties()
 	ret["first"] = 1;
 	ret["second"] = 2;
 	ret["third"] = 3;
+	return ret;
+}
+
+std::map<std::string, Foo> CppApiXX::mapSF()
+{
+	std::cout << "std::map<std::string, Foo>" << std::endl;
+	std::map<std::string, Foo> ret;
+	Foo f;
+	ret["first"] = f;
+	ret["second"] = f;
+	ret["third"] = f;
 	return ret;
 }
 
@@ -77,9 +96,24 @@ std::array<float, 3> CppApiXX::TestArrayOutObsolete()
 	return retval;
 }
 
-std::array<float, 3> CppApiXX::FooInArrayOutObsolete(Foo f)
+VFloat3 CppApiXX::FooInVFloat3Out(Foo f)
 {
-	std::cout << "std::array<float, 3> FooInArrayOutObsolete(Foo f)" << std::endl;
-	std::array<float, 3> retval = { 1.1f, 2.2f, 3.3f };
+	std::cout << "std::array<float, 3> FooInVFloat3Out(Foo f)" << std::endl;
+	VFloat3 retval = { 1.1f, 2.2f, 3.3f };
+	
+	std::cout << "VFloat3= " << retval.data[0] << " " << retval.data[2] << std::endl;
 	return retval;
+}
+
+void CppApiXX::pp_pre_string_to_post_popo()
+{
+	std::cout << "pe_string_to_post" << std::endl;
+}
+void CppApiXX::pre_to_test()
+{
+	std::cout << "pe_string_to" << std::endl;
+}
+void CppApiXX::string_to_post()
+{
+	std::cout << "string_to_post" << std::endl;
 }

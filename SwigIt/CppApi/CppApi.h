@@ -11,6 +11,10 @@ class Foo
 {
 	int level42;
 };
+class Bar
+{
+	int theInt;
+};
 
 
 // Genaugenommen kein POD (plain old Datatype), weil definierte Konstruktoren. Scheint aber trotzdem von der .NET-CLI / p/invoke zur Laufzeit 
@@ -38,6 +42,17 @@ struct Vector_POD
 	float x, y, z;
 };
 
+
+struct VFloat3
+{
+	float data[3];
+	//int& operator[] (const int idx)
+	//{
+	//	return data[idx];
+	//}
+};
+
+
 #include <array>
 #include <vector>
 #include <map>
@@ -45,6 +60,28 @@ struct Vector_POD
 class CPP_API_EXIM CppApiXX
 {
 public:
+
+	enum fixed_oversample_items {
+		fixed_oversample_items_5 = 5,
+		fixed_oversample_items_8 = 8,
+		fixed_oversample_items_11 = 11,
+		fixed_oversample_items_16 = 16
+	};
+
+	std::map<std::string, int> create_string_to_fixed_oversample_items() {
+		return{ { "5", fixed_oversample_items_5 }, { "8", fixed_oversample_items_8 }, { "11", fixed_oversample_items_11 }, { "16", fixed_oversample_items_16 } };
+	};
+
+	std::map<int, std::string> create_fixed_oversample_items_to_string() {
+		return{ { fixed_oversample_items_5, "5" }, { fixed_oversample_items_8, "8" }, { fixed_oversample_items_11, "11" }, { fixed_oversample_items_16, "16" } };
+	};
+
+	const std::map<std::string, int> string_to_fixed_oversample_items = create_string_to_fixed_oversample_items();
+	const std::map<int, std::string> fixed_oversample_items_to_string = create_fixed_oversample_items_to_string();
+
+
+
+
 	void TestArrayIn(Vector_POD);
 	Vector_POD TestArrayOut();
 	Vector_POD TestArrayInOut(Vector_POD myArray);
@@ -54,13 +91,19 @@ public:
 	void default_value(const std::string& value);
 
 	std::vector<int> createV3(int vx, int vy, int vz);
+	std::vector<int> createList(std::vector<int> in);
 
 	std::map<std::string, int> properties();
+	std::map<std::string, Foo> mapSF();
 
 	void TestArrayInObsolete(std::array<float, 3> a);
 	std::array<float,3> TestArrayOutObsolete();
 
-	std::array<float, 3> FooInArrayOutObsolete(Foo f);
+	VFloat3 FooInVFloat3Out(Foo vf3);
+
+	void pp_pre_string_to_post_popo();
+	void pre_to_test();
+	void string_to_post();
 };
 
 
