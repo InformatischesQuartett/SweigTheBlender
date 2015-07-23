@@ -16,34 +16,10 @@
 /* converting std::string */
 %include "std_string.i"
 
+//ignoring  string_to_* or *_to_string 
+%rename("%(regex:/(\w*)string_to(\w*)/$ignore/)s") "";
+%rename("%(regex:/(\w*)to_string(\w*)/$ignore/)s") "";
 
-//Ignore
-// string_to_* or *_to_string 
-
-//%rename("%(regex:/(\\w+)_(.*)/\\u\\3/)")"";
-
-%rename("%(regex:/^(.*)((to_test()))/\\2/)s") $ignore;
-//%ignore to_test;
-
-
-
-/*renaming everthing that ends with to_string*/
-//%rename("%(regex:/^(.*)((to_string()))/\3/)s") "";
-
-/*ignoring everthing that starts with string_to*/
-//%rename("%(regex:/^((string_to)(.*))/\/)s") "";
-
-/*ignoring everthing that starts with string_to*/
-//%rename("%(regex:/^((.*)(string_to)(.*))/\/)s")"";
-
-//%rename("%(regex:/^(.*)((string_to).*)/\\2/)s\S\*") "";
-//%rename("%(regex:/^(.*)((string_to).*)/\\2/)s") "";
-
-//%rename("%(regex:/^.(string_to).*)/\\3/)s") "";
-//%rename("%(regex:/(\\w+)_(.*)/\\u\\2/)") "bla";
-//%rename("%(regex:/pre(?!EVT)(.*)/\\1/)s") "";
-
-//%ignore  wegdamit:
 
 
 
@@ -119,57 +95,214 @@
    } /* <Vector_POD_csvarout> */ %}
 
 
-
-   // Map VFloat3   TO   Fusee.Math.float3
-%typemap(cstype, out="Fusee.Math.float3 /* VFloat3_cstype_out */") VFloat3 "Fusee.Math.float3 /* VFloat3_cstype */"
-%typemap(csout, excode=SWIGEXCODE) VFloat3 
-%{ {  /* <VFloat3_csout> */
-      Fusee.Math.float3 ret = $imcall;$excode
+// Map VFLOAT2   TO   Fusee.Math.float2
+%typemap(cstype, out="Fusee.Math.float2 /* VFLOAT2_cstype_out */") VFLOAT2 "Fusee.Math.float2 /* VFLOAT2_cstype */"
+%typemap(csout, excode=SWIGEXCODE) VFLOAT2 
+%{ {  /* <VFLOAT2_csout> */
+      Fusee.Math.float2 ret = $imcall;$excode
       return ret;
-   } /* <VFloat3_csout> */ %}
-%typemap(imtype, out="Fusee.Math.float3 /* VFloat3_imtype_out */") VFloat3 "Fusee.Math.float3 /* VFloat3_imtype */"
-%typemap(ctype, out="VFloat3 /* VFloat3_ctype_out */") VFloat3 "VFloat3 /* VFloat3_ctype */"
-%typemap(directorout) VFloat3
-%{ /* <VFloat3_directorout> */
-   $result = *((VFloat3 *)&($input)); 
-   /* </VFloat3_directorout> */
+   } /* <VFLOAT2_csout> */ %}
+%typemap(imtype, out="Fusee.Math.float2 /* VFLOAT2_imtype_out */") VFLOAT2 "Fusee.Math.float2 /* VFLOAT2_imtype */"
+%typemap(ctype, out="VFLOAT2 /* VFLOAT2_ctype_out */") VFLOAT2 "VFLOAT2 /* VFLOAT2_ctype */"
+%typemap(directorout) VFLOAT2
+%{ /* <VFLOAT2_directorout> */
+   $result = *((VFLOAT2 *)&($input)); 
+   /* </VFLOAT2_directorout> */
  %}
-%typemap(directorin) VFloat3 
-%{ /* <VFloat3_directorin> */
-   $input = *((VFloat3 *)&($1)); 
-   /* </VFloat3_directorin> */ 
+%typemap(directorin) VFLOAT2 
+%{ /* <VFLOAT2_directorin> */
+   $input = *((VFLOAT2 *)&($1)); 
+   /* </VFLOAT2_directorin> */ 
 %}
-%typemap(out, null="VFloat3()")    VFloat3
+%typemap(out, null="VFLOAT2()")    VFLOAT2
 %{ 
-	/* VFloat3 out*/
+	/* VFLOAT2 out*/
 	$result = $1;
-	/* VFloat3 out*/
+	/* VFLOAT2 out*/
 %}
-%typemap(in) VFloat3 
+%typemap(in) VFLOAT2 
 %{
-	/* <VFloat3_in> */
-	$1 = *((VFloat3 *)&($input));
-	/* </VFloat3_in> */
+	/* <VFLOAT2_in> */
+	$1 = *((VFLOAT2 *)&($input));
+	/* </VFLOAT2_in> */
 %}
-%typemap(csin) VFloat3 "$csinput /* VFloat3_csin */"
+%typemap(csin) VFLOAT2 "$csinput /* VFLOAT2_csin */"
 %typemap(csdirectorin, 
-   pre="/* NOP VFloat3_csdirectorin_pre */"
-  ) VFloat3
-  "$iminput /* VFloat3_csdirectorin */"
-%typemap(csdirectorout) VFloat3 "$cscall /* VFloat3_csdirectorout */"
-%typemap(csvarin) VFloat3 %{
-    /* <VFloat3_csvarin> */
+   pre="/* NOP VFLOAT2_csdirectorin_pre */"
+  ) VFLOAT2
+  "$iminput /* VFLOAT2_csdirectorin */"
+%typemap(csdirectorout) VFLOAT2 "$cscall /* VFLOAT2_csdirectorout */"
+%typemap(csvarin) VFLOAT2 %{
+    /* <VFLOAT2_csvarin> */
     set 
 	{
       $imcall;$excode
-    }  /* </VFloat3_csvarin> */  %}
-%typemap(csvarout) VFloat3 %{ 
-   /* <VFloat3_csvarout> */
+    }  /* </VFLOAT2_csvarin> */  %}
+%typemap(csvarout) VFLOAT2 %{ 
+   /* <VFLOAT2_csvarout> */
+   get
+   {  
+      Fusee.Math.float2 ret = $imcall;$excode
+      return ret;
+   } /* <VFLOAT2_csvarout> */ %}
+
+
+
+// Map VFLOAT3   TO   Fusee.Math.float3
+%typemap(cstype, out="Fusee.Math.float3 /* VFLOAT3_cstype_out */") VFLOAT3 "Fusee.Math.float3 /* VFLOAT3_cstype */"
+%typemap(csout, excode=SWIGEXCODE) VFLOAT3 
+%{ {  /* <VFLOAT3_csout> */
+      Fusee.Math.float3 ret = $imcall;$excode
+      return ret;
+   } /* <VFLOAT3_csout> */ %}
+%typemap(imtype, out="Fusee.Math.float3 /* VFLOAT3_imtype_out */") VFLOAT3 "Fusee.Math.float3 /* VFLOAT3_imtype */"
+%typemap(ctype, out="VFLOAT3 /* VFLOAT3_ctype_out */") VFLOAT3 "VFLOAT3 /* VFLOAT3_ctype */"
+%typemap(directorout) VFLOAT3
+%{ /* <VFLOAT3_directorout> */
+   $result = *((VFLOAT3 *)&($input)); 
+   /* </VFLOAT3_directorout> */
+ %}
+%typemap(directorin) VFLOAT3 
+%{ /* <VFLOAT3_directorin> */
+   $input = *((VFLOAT3 *)&($1)); 
+   /* </VFLOAT3_directorin> */ 
+%}
+%typemap(out, null="VFLOAT3()")    VFLOAT3
+%{ 
+	/* VFLOAT3 out*/
+	$result = $1;
+	/* VFLOAT3 out*/
+%}
+%typemap(in) VFLOAT3 
+%{
+	/* <VFLOAT3_in> */
+	$1 = *((VFLOAT3 *)&($input));
+	/* </VFLOAT3_in> */
+%}
+%typemap(csin) VFLOAT3 "$csinput /* VFLOAT3_csin */"
+%typemap(csdirectorin, 
+   pre="/* NOP VFLOAT3_csdirectorin_pre */"
+  ) VFLOAT3
+  "$iminput /* VFLOAT3_csdirectorin */"
+%typemap(csdirectorout) VFLOAT3 "$cscall /* VFLOAT3_csdirectorout */"
+%typemap(csvarin) VFLOAT3 %{
+    /* <VFLOAT3_csvarin> */
+    set 
+	{
+      $imcall;$excode
+    }  /* </VFLOAT3_csvarin> */  %}
+%typemap(csvarout) VFLOAT3 %{ 
+   /* <VFLOAT3_csvarout> */
    get
    {  
       Fusee.Math.float3 ret = $imcall;$excode
       return ret;
-   } /* <VFloat3_csvarout> */ %}
+   } /* <VFLOAT3_csvarout> */ %}
+
+
+
+// Map VFLOAT4   TO   Fusee.Math.float4
+%typemap(cstype, out="Fusee.Math.float4 /* VFLOAT4_cstype_out */") VFLOAT4 "Fusee.Math.float4 /* VFLOAT4_cstype */"
+%typemap(csout, excode=SWIGEXCODE) VFLOAT4 
+%{ {  /* <VFLOAT4_csout> */
+      Fusee.Math.float4 ret = $imcall;$excode
+      return ret;
+   } /* <VFLOAT4_csout> */ %}
+%typemap(imtype, out="Fusee.Math.float4 /* VFLOAT4_imtype_out */") VFLOAT4 "Fusee.Math.float4 /* VFLOAT4_imtype */"
+%typemap(ctype, out="VFLOAT4 /* VFLOAT4_ctype_out */") VFLOAT4 "VFLOAT4 /* VFLOAT4_ctype */"
+%typemap(directorout) VFLOAT4
+%{ /* <VFLOAT4_directorout> */
+   $result = *((VFLOAT4 *)&($input)); 
+   /* </VFLOAT4_directorout> */
+ %}
+%typemap(directorin) VFLOAT4 
+%{ /* <VFLOAT4_directorin> */
+   $input = *((VFLOAT4 *)&($1)); 
+   /* </VFLOAT4_directorin> */ 
+%}
+%typemap(out, null="VFLOAT4()")    VFLOAT4
+%{ 
+	/* VFLOAT4 out*/
+	$result = $1;
+	/* VFLOAT4 out*/
+%}
+%typemap(in) VFLOAT4 
+%{
+	/* <VFLOAT4_in> */
+	$1 = *((VFLOAT4 *)&($input));
+	/* </VFLOAT4_in> */
+%}
+%typemap(csin) VFLOAT4 "$csinput /* VFLOAT4_csin */"
+%typemap(csdirectorin, 
+   pre="/* NOP VFLOAT4_csdirectorin_pre */"
+  ) VFLOAT4
+  "$iminput /* VFLOAT4_csdirectorin */"
+%typemap(csdirectorout) VFLOAT4 "$cscall /* VFLOAT4_csdirectorout */"
+%typemap(csvarin) VFLOAT4 %{
+    /* <VFLOAT4_csvarin> */
+    set 
+	{
+      $imcall;$excode
+    }  /* </VFLOAT4_csvarin> */  %}
+%typemap(csvarout) VFLOAT4 %{ 
+   /* <VFLOAT4_csvarout> */
+   get
+   {  
+      Fusee.Math.float4 ret = $imcall;$excode
+      return ret;
+   } /* <VFLOAT4_csvarout> */ %}
+
+
+// Map VFLOAT16   TO   Fusee.Math.float4x4
+%typemap(cstype, out="Fusee.Math.float4x4 /* VFLOAT16_cstype_out */") VFLOAT16 "Fusee.Math.float4x4 /* VFLOAT16_cstype */"
+%typemap(csout, excode=SWIGEXCODE) VFLOAT16 
+%{ {  /* <VFLOAT16_csout> */
+      Fusee.Math.float4x4 ret = $imcall;$excode
+      return ret;
+   } /* <VFLOAT16_csout> */ %}
+%typemap(imtype, out="Fusee.Math.float4x4 /* VFLOAT16_imtype_out */") VFLOAT16 "Fusee.Math.float4x4 /* VFLOAT16_imtype */"
+%typemap(ctype, out="VFLOAT16 /* VFLOAT16_ctype_out */") VFLOAT16 "VFLOAT16 /* VFLOAT16_ctype */"
+%typemap(directorout) VFLOAT16
+%{ /* <VFLOAT16_directorout> */
+   $result = *((VFLOAT16 *)&($input)); 
+   /* </VFLOAT16_directorout> */
+ %}
+%typemap(directorin) VFLOAT16 
+%{ /* <VFLOAT16_directorin> */
+   $input = *((VFLOAT16 *)&($1)); 
+   /* </VFLOAT16_directorin> */ 
+%}
+%typemap(out, null="VFLOAT16()")    VFLOAT16
+%{ 
+	/* VFLOAT16 out*/
+	$result = $1;
+	/* VFLOAT16 out*/
+%}
+%typemap(in) VFLOAT16 
+%{
+	/* <VFLOAT16_in> */
+	$1 = *((VFLOAT16 *)&($input));
+	/* </VFLOAT16_in> */
+%}
+%typemap(csin) VFLOAT16 "$csinput /* VFLOAT16_csin */"
+%typemap(csdirectorin, 
+   pre="/* NOP VFLOAT16_csdirectorin_pre */"
+  ) VFLOAT16
+  "$iminput /* VFLOAT16_csdirectorin */"
+%typemap(csdirectorout) VFLOAT16 "$cscall /* VFLOAT16_csdirectorout */"
+%typemap(csvarin) VFLOAT16 %{
+    /* <VFLOAT16_csvarin> */
+    set 
+	{
+      $imcall;$excode
+    }  /* </VFLOAT16_csvarin> */  %}
+%typemap(csvarout) VFLOAT16 %{ 
+   /* <VFLOAT16_csvarout> */
+   get
+   {  
+      Fusee.Math.float4x4 ret = $imcall;$excode
+      return ret;
+   } /* <VFLOAT16_csvarout> */ %}
 
 
 
