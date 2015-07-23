@@ -359,6 +359,21 @@
 
 
 
+// Map int $1[ANY] TO  int[]
+%typemap(cstype, out="$csclassname") int[ANY] "int[] /* int[]_cstype */"
+%typemap(csin) int[ANY] " $csinput /* int[]_csin */"
+%typemap(imtype) int[ANY] "int[] /* int[]_imtype */"
+
+// Map float $1[ANY] TO  float[]
+%typemap(cstype, out="$csclassname") float[ANY] "float[] /* float[]_cstype */"
+%typemap(csin) float[ANY] " $csinput /* float[]_csin */"
+%typemap(imtype) float[ANY] "float[] /* float[]_imtype */"
+
+// Map bool $1[ANY] TO  bool[]
+%typemap(cstype, out="$csclassname") bool[ANY] "bool[] /* bool[]_cstype */"
+%typemap(csin) bool[ANY] " $csinput /* bool[]_csin */"
+%typemap(imtype) bool[ANY] "bool[] /* bool[]_imtype */"
+
 %include "CppApi.h";
 //%include "uniplug_blender_api.h";
 
