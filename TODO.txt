@@ -82,8 +82,199 @@ std::map<std::string, MeshLoopColorLayer>
 std::map<std::string, MeshVertexFloatPropertyLayer>
 std::map<std::string, MeshVertexIntPropertyLayer>
 std::map<std::string, MeshVertexStringPropertyLayer>
+std::map<std::string, MeshSkinVertexLayer
+std::map<std::string, MeshPaintMaskLayer>
+std::map<std::string, MeshSkinVertex>
+std::map<std::string, MeshPaintMaskProperty>
+std::map<std::string, VertexGroupElement>
+std::map<std::string, MeshUVLoop>
+std::map<std::string, MeshTextureFace>
+std::map<std::string, MeshColor> 
+std::map<std::string, MeshLoopColor>
+std::map<std::string, MeshVertexFloatProperty>
+std::map<std::string, MeshPolygonFloatProperty>
+std::map<std::string, MeshVertexIntProperty>
+std::map<std::string, MeshPolygonIntProperty>
+std::map<std::string, MeshVertexStringProperty>
+std::map<std::string, MeshPolygonStringProperty>
+std::map<std::string, UVProjector>
+std::map<std::string, NlaStrip>
+std::map<std::string, NodeLink> 
+std::map<std::string, NodeOutputFileSlotFile>
+std::map<std::string, NodeOutputFileSlotLayer>
+std::map<std::string, MaterialSlot>
+std::map<std::string, VertexGroup>
+std::map<std::string, ParticleSystem> 
+std::map<std::string, DupliObject>
+std::map<std::string, LodLevel>
+std::map<std::string, Sensor>
+std::map<std::string, GameProperty>
+std::map<std::string, PoseBone> 
+std::map<std::string, BoneGroup>
+std::map<std::string, RenderLayer>
+std::map<std::string, RenderView>
+std::map<std::string, RenderPass>
+std::map<std::string, TimelineMarker>
+std::map<std::string, TransformOrientation>
+std::map<std::string, SceneRenderLayer>
+std::map<std::string, SceneRenderView>
+std::map<std::string, Area>
+std::map<std::string, Space>
+std::map<std::string, Region>
+std::map<std::string, SequenceModifier>
+std::map<std::string, RegionView3D>
+std::map<std::string, ConsoleLine>
+std::map<std::string, Addon>
+std::map<std::string, PathCompare>
+std::map<std::string, Macro>
+std::map<std::string, KeyConfig>
+std::map<std::string, KeyMap>
+std::map<std::string, KeyMapItem>
+std::map<std::string, WorldTextureSlot>
 
-void black_level(float values[3])?
+
+
+//std::map<std::string, ANY> by hand :(
+%template(String_Bone_Map) std::map<std::string, Bone>;
+%template(String_BoidRule_Map) std::map<std::string, BoidRule>;
+%template(String_BoidState_Map) std::map<std::string, BoidState>;
+%template(String_CurveMapPoint_Map) std::map<std::string, CurveMapPoint>;
+%template(String_CurveMap_Map) std::map<std::string, CurveMap>;
+%template(String_ColorRampElement_Map) std::map<std::string, ColorRampElement>;
+%template(String_ConstraintTarget_Map) std::map<std::string, ConstraintTarget>;
+%template(String_Actuator_Map) std::map<std::string, Actuator>;
+%template(String_Spline_Map) std::map<std::string, Spline>;
+%template(String_Material_Map) std::map<std::string, Material>;
+%template(String_TextBox_Map) std::map<std::string, TextBox>;
+%template(String_TextCharacterFormat_Map) std::map<std::string, TextCharacterFormat>;
+%template(String_SplinePoint_Map) std::map<std::string, SplinePoint>;
+%template(String_BezierSplinePoint_Map) std::map<std::string, BezierSplinePoint>;
+%template(String_DynamicPaintSurface_Map) std::map<std::string, DynamicPaintSurface>; 
+%template(String_FCurveSample_Map) std::map<std::string, FCurveSample>;
+%template(String_Keyframe_Map) std::map<std::string, Keyframe>;
+%template(String_FModifier_Map) std::map<std::string, FModifier>;
+%template(String_DriverTarget_Map) std::map<std::string, DriverTarget>;
+%template(String_DriverVariable_Map) std::map<std::string, DriverVariable>;
+%template(String_FModifierEnvelopeControlPoint_Map) std::map<std::string, FModifierEnvelopeControlPoint>;
+%template(String_FluidMeshVertex_Map) std::map<std::string, FluidMeshVertex>; 
+%template(String_GPencilLayer_Map) std::map<std::string, GPencilLayer>;
+%template(String_GPencilFrame_Map) std::map<std::string, GPencilFrame>;
+%template(String_GPencilStroke_Map) std::map<std::string, GPencilStroke>;
+%template(String_GPencilStrokePoint_Map) std::map<std::string, GPencilStrokePoint>;
+%template(String_Object_Map) std::map<std::string, Object>;
+%template(String_ImagePackedFile_Map) std::map<std::string, ImagePackedFile>;
+%template(String_RenderSlot_Map) std::map<std::string, RenderSlot>;
+%template(String_ShapeKey_Map) std::map<std::string, ShapeKey>;
+%template(String_UnknownType_Map) std::map<std::string, UnknownType>;
+%template(String_LampTextureSlot_Map) std::map<std::string, LampTextureSlot>;
+%template(String_LatticePoint_Map) std::map<std::string, LatticePoint>;
+%template(String_VertexGroupElement_Map) std::map<std::string, VertexGroupElement>;
+%template(String_LineStyleTextureSlot_Map) std::map<std::string, LineStyleTextureSlot>;
+%template(String_LineStyleColorModifier_Map) std::map<std::string, LineStyleColorModifier>;
+%template(String_LineStyleAlphaModifier_Map) std::map<std::string, LineStyleAlphaModifier>;
+%template(String_LineStyleThicknessModifier_Map) std::map<std::string, LineStyleThicknessModifier>;
+%template(String_LineStyleGeometryModifier_Map) std::map<std::string, LineStyleGeometryModifier>;
+%template(String_Camera_Map) std::map<std::string, Camera>;
+%template(String_Scene_Map) std::map<std::string, Scene>;
+%template(String_NodeTree_Map) std::map<std::string, NodeTree>;
+%template(String_Mesh_Map) std::map<std::string, Mesh>;
+%template(String_Lamp_Map) std::map<std::string, Lamp>;
+%template(String_Library_Map) std::map<std::string, Library>;
+%template(String_Screen_Map) std::map<std::string, Screen>;
+%template(String_WindowManager_Map) std::map<std::string, WindowManager>;
+%template(String_Image_Map) std::map<std::string, Image>;
+%template(String_Lattice_Map) std::map<std::string, Lattice>;
+%template(String_Curve_Map) std::map<std::string, Curve>;
+%template(String_MetaBall_Map) std::map<std::string, MetaBall>;
+%template(String_VectorFont_Map) std::map<std::string, VectorFont>;
+%template(String_Texture_Map) std::map<std::string, Texture>;
+%template(String_Brush_Map) std::map<std::string, Brush>;
+%template(String_World_Map) std::map<std::string, World>;
+%template(String_Group_Map) std::map<std::string, Group>;
+%template(String_Key_Map) std::map<std::string, Key>;
+%template(String_ID_Map) std::map<std::string, ID>; 
+%template(String_Text_Map) std::map<std::string, Text>;
+%template(String_Speaker_Map) std::map<std::string, Speaker>;
+%template(String_Sound_Map) std::map<std::string, Sound>;
+%template(String_Armature_Map) std::map<std::string, Armature>;
+%template(String_Action_Map) std::map<std::string, Action>;
+%template(String_ParticleSettings_Map) std::map<std::string, ParticleSettings>;
+%template(String_Palette_Map) std::map<std::string, Palette>;
+%template(String_GreasePencil_Map) std::map<std::string, GreasePencil>;
+%template(String_MovieClip_Map) std::map<std::string, MovieClip>;
+%template(String_Mask_Map) std::map<std::string, Mask>;
+%template(String_FreestyleLineStyle_Map) std::map<std::string, FreestyleLineStyle>; 
+%template(String_MaterialTextureSlot_Map) std::map<std::string, MaterialTextureSlot>;
+%template(String_TexPaintSlot_Map) std::map<std::string, TexPaintSlot>;
+%template(String_MeshVertex_Map) std::map<std::string, MeshVertex>;
+%template(String_MeshEdge_Map) std::map<std::string, MeshEdge>;
+%template(String_MeshTessFace_Map) std::map<std::string, MeshTessFace>;
+%template(String_MeshLoop_Map) std::map<std::string, MeshLoop>;
+%template(String_MeshPolygon_Map) std::map<std::string, MeshPolygon>;
+%template(String_MeshUVLoopLayer_Map) std::map<std::string, MeshUVLoopLayer>;
+%template(String_MeshTextureFaceLayer_Map) std::map<std::string, MeshTextureFaceLayer>;
+%template(String_MeshTexturePolyLayer_Map) std::map<std::string, MeshTexturePolyLayer>; 
+%template(String_MeshColorLayer_Map) std::map<std::string, MeshColorLayer>;
+%template(String_MeshLoopColorLayer_Map) std::map<std::string, MeshLoopColorLayer>;
+%template(String_MeshVertexFloatPropertyLayer_Map) std::map<std::string, MeshVertexFloatPropertyLayer>;
+%template(String_MeshVertexIntPropertyLayer_Map) std::map<std::string, MeshVertexIntPropertyLayer>;
+%template(String_MeshVertexStringPropertyLayer_Map) std::map<std::string, MeshVertexStringPropertyLayer>;
+%template(String_MeshSkinVertexLayer_Map) std::map<std::string, MeshSkinVertexLayer>;
+%template(String_MeshPaintMaskLayer_Map) std::map<std::string, MeshPaintMaskLayer>;
+%template(String_MeshSkinVertex_Map) std::map<std::string, MeshSkinVertex>;
+%template(String_MeshPaintMaskProperty_Map) std::map<std::string, MeshPaintMaskProperty>;
+%template(String_VertexGroupElement_Map) std::map<std::string, VertexGroupElement>;
+%template(String_MeshUVLoop_Map) std::map<std::string, MeshUVLoop>;
+%template(String_MeshTextureFace_Map) std::map<std::string, MeshTextureFace>;
+%template(String_MeshColor_Map) std::map<std::string, MeshColor>; 
+%template(String_MeshLoopColor_Map) std::map<std::string, MeshLoopColor>;
+%template(String_MeshVertexFloatProperty_Map) std::map<std::string, MeshVertexFloatProperty>;
+%template(String_MeshPolygonFloatProperty_Map) std::map<std::string, MeshPolygonFloatProperty>;
+%template(String_MeshVertexIntProperty_Map) std::map<std::string, MeshVertexIntProperty>;
+%template(String_MeshPolygonIntProperty_Map) std::map<std::string, MeshPolygonIntProperty>;
+%template(String_MeshVertexStringProperty_Map) std::map<std::string, MeshVertexStringProperty>;
+%template(String_MeshPolygonStringProperty_Map) std::map<std::string, MeshPolygonStringProperty>;
+%template(String_UVProjector_Map) std::map<std::string, UVProjector>;
+%template(String_NlaStrip_Map) std::map<std::string, NlaStrip>;
+%template(String_NodeLink_Map) std::map<std::string, NodeLink>; 
+%template(String_NodeOutputFileSlotFile_Map) std::map<std::string, NodeOutputFileSlotFile>;
+%template(String_NodeOutputFileSlotLayer_Map) std::map<std::string, NodeOutputFileSlotLayer>;
+%template(String_MaterialSlot_Map) std::map<std::string, MaterialSlot>;
+%template(String_VertexGroup_Map) std::map<std::string, VertexGroup>;
+%template(String_ParticleSystem_Map) std::map<std::string, ParticleSystem>; 
+%template(String_DupliObject_Map) std::map<std::string, DupliObject>;
+%template(String_LodLevel_Map) std::map<std::string, LodLevel>;
+%template(String_Sensor_Map) std::map<std::string, Sensor>;
+%template(String_GameProperty_Map) std::map<std::string, GameProperty>;
+%template(String_PoseBone_Map) std::map<std::string, PoseBone>; 
+%template(String_BoneGroup_Map) std::map<std::string, BoneGroup>;
+%template(String_RenderLayer_Map) std::map<std::string, RenderLayer>;
+%template(String_RenderView_Map) std::map<std::string, RenderView>;
+%template(String_RenderPass_Map) std::map<std::string, RenderPass>;
+%template(String_TimelineMarker_Map) std::map<std::string, TimelineMarker>;
+%template(String_TransformOrientation_Map) std::map<std::string, TransformOrientation>;
+%template(String_SceneRenderLayer_Map) std::map<std::string, SceneRenderLayer>;
+%template(String_SceneRenderView_Map) std::map<std::string, SceneRenderView>;
+%template(String_Area_Map) std::map<std::string, Area>;
+%template(String_Space_Map) std::map<std::string, Space>;
+%template(String_Region_Map) std::map<std::string, Region>;
+%template(String_SequenceModifier_Map) std::map<std::string, SequenceModifier>;
+%template(String_RegionView3D_Map) std::map<std::string, RegionView3D>;
+%template(String_ConsoleLine_Map) std::map<std::string, ConsoleLine>;
+%template(String_Addon_Map) std::map<std::string, Addon>;
+%template(String_PathCompare_Map) std::map<std::string, PathCompare>;
+%template(String_Macro_Map) std::map<std::string, Macro>;
+%template(String_KeyConfig_Map) std::map<std::string, KeyConfig>;
+%template(String_KeyMap_Map) std::map<std::string, KeyMap>;
+%template(String_KeyMapItem_Map) std::map<std::string, KeyMapItem>;
+%template(String_WorldTextureSlot_Map) std::map<std::string, WorldTextureSlot>;
+
+
+--> mailinglist
+
+
+void black_level(float values[3])
+check :) -> may collide with VFLOAT, needs to be checked.
 
 
 
@@ -110,7 +301,14 @@ return {{fixed_oversample_items_5, "5"}, {fixed_oversample_items_8, "8"}, {fixed
 const std::map<std::string, int> string_to_fixed_oversample_items = create_string_to_fixed_oversample_items();
 const std::map<int, std::string> fixed_oversample_items_to_string = create_fixed_oversample_items_to_string();
 22:58 - TeeTrizZz: die beiden create-funktionen und die beiden const std::maps... müssen ignoriert werden, das enum oben aber muss übersetzt werden
-
+check :)
 
  heißen hier VFLOAT2, VFLOAT3, VFLOAT4 und VFLOAT16
+ check :)
 
+ 
+  3338 und 3339
+15:51 - TeeTrizZz: und mach bei beiden das const weg
+15:51 - TeeTrizZz: und schau dann ob die 2. fehlermeldung weg ist
+15:53 - TeeTrizZz: und das const in zeile 4995, 4996, 5021, 5022, 5047, 5048, 5072, 5073, 5107 und 5108
+15:53 - TeeTrizZz: dann müsste die 1. meldung weg sein
