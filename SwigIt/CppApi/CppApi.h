@@ -80,7 +80,7 @@ public:
 	const std::map<int, std::string> fixed_oversample_items_to_string = create_fixed_oversample_items_to_string();
 
 
-
+	void vertices(int values[4]);
 
 	void TestArrayIn(Vector_POD);
 	Vector_POD TestArrayOut();
@@ -95,15 +95,12 @@ public:
 
 	std::map<std::string, int> properties();
 	std::map<std::string, Foo> mapSF();
+	std::map<std::string, Bar> mapSB();
 
 	void TestArrayInObsolete(std::array<float, 3> a);
 	std::array<float,3> TestArrayOutObsolete();
 
-	VFloat3 FooInVFloat3Out(Foo vf3);
 
-	void pp_pre_string_to_post_popo();
-	void pre_to_test();
-	void string_to_post();
 };
 
 

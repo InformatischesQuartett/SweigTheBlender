@@ -25,7 +25,7 @@ Vector_POD CppApiXX::TestArrayInOut(Vector_POD myArray)
 	return retval;
 }
 
-//Hier geht's schief ! 
+//klappt 
 Vector_POD CppApiXX::FooInArrayOut(Foo f)
 {
 	std::cout << "Vector FooInArrayOut(Foo f)" << std::endl;
@@ -84,6 +84,23 @@ std::map<std::string, Foo> CppApiXX::mapSF()
 	return ret;
 }
 
+std::map<std::string, Bar> CppApiXX::mapSB()
+{
+	std::cout << "std::map<std::string, Bar>" << std::endl;
+	std::map<std::string, Bar> ret;
+	Bar b;
+	ret["first"] = b;
+	ret["second"] = b;
+	ret["third"] = b;
+	return ret;
+}
+
+
+void CppApiXX::vertices(int values[4]) {
+	std::cout << "PRIMITIVE_TYPES_ARRAY_SETTER(i, vertices, 4" << std::endl;
+}
+
+
 void CppApiXX::TestArrayInObsolete(std::array<float, 3> a)
 {
 	std::cout << "void TestArrayInObsolete(std::array<float, 3>)" << std::endl;
@@ -96,24 +113,5 @@ std::array<float, 3> CppApiXX::TestArrayOutObsolete()
 	return retval;
 }
 
-VFloat3 CppApiXX::FooInVFloat3Out(Foo f)
-{
-	std::cout << "std::array<float, 3> FooInVFloat3Out(Foo f)" << std::endl;
-	VFloat3 retval = { 1.1f, 2.2f, 3.3f };
-	
-	std::cout << "VFloat3= " << retval.data[0] << " " << retval.data[2] << std::endl;
-	return retval;
-}
 
-void CppApiXX::pp_pre_string_to_post_popo()
-{
-	std::cout << "pe_string_to_post" << std::endl;
-}
-void CppApiXX::pre_to_test()
-{
-	std::cout << "pe_string_to" << std::endl;
-}
-void CppApiXX::string_to_post()
-{
-	std::cout << "string_to_post" << std::endl;
-}
+
