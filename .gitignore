@@ -215,4 +215,3 @@ FakesAssemblies/
 
 # Ignore SWIG Generated Folder / CsFiles
 SwigIt/CsWrapper/Generated/*
-SwigTests/FirstTest/Sharp/Generated/*
