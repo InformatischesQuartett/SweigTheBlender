@@ -8,8 +8,8 @@
 // with the "normal" #include are not wrapped (yet), although most of them will appear in some later %include; section.
 %{
 /* Includes the header in the wrapper code */
-#include "CppApi.h"
-//#include "uniplug_blender_api.h"
+//#include "CppApi.h"
+#include "uniplug_blender_api.h"
 
 %}
 %include <windows.i>
@@ -39,8 +39,16 @@
 // "The C# wrapper is made to look and feel like a C# System.Collections.Generic.IDictionary<>." [ref: std_map.i]
 // TODO: std::map<std::string, Foo> / TODO: std::map<std::string, T> | T can be any self defined class i.e. Foo
 %include "std_map.i"
-%template(String_Int_Map) std::map<std::string, int>;
-%template(Int_String_Map) std::map<int, std::string>;
+%template(String_Int_Map)  std::map<std::string, int>;
+%template(Int_String_Map)  std::map<int, std::string>;
+
+//%define %my_templates(DATA_TYPE)
+//%template(String_ ## DATA_TYPE ## _Map) std::map<std::string, DATA_TYPE>;
+//%enddef
+
+//%my_templates(Foo);
+//%my_templates(Bar)
+
 
 
 // Map Vector_POD   TO   Fusee.Math.float3
@@ -365,15 +373,15 @@
 %typemap(imtype) int[ANY] "int[] /* int[]_imtype */"
 
 // Map float $1[ANY] TO  float[]
-%typemap(cstype, out="$csclassname") float[ANY] "float[] /* float[]_cstype */"
-%typemap(csin) float[ANY] " $csinput /* float[]_csin */"
-%typemap(imtype) float[ANY] "float[] /* float[]_imtype */"
+//%typemap(cstype, out="$csclassname") float[ANY] "float[] /* float[]_cstype */"
+//%typemap(csin) float[ANY] " $csinput /* float[]_csin */"
+//%typemap(imtype) float[ANY] "float[] /* float[]_imtype */"
 
 // Map bool $1[ANY] TO  bool[]
 %typemap(cstype, out="$csclassname") bool[ANY] "bool[] /* bool[]_cstype */"
 %typemap(csin) bool[ANY] " $csinput /* bool[]_csin */"
 %typemap(imtype) bool[ANY] "bool[] /* bool[]_imtype */"
 
-%include "CppApi.h";
-//%include "uniplug_blender_api.h";
+//%include "CppApi.h";
+%include "uniplug_blender_api.h";
 
