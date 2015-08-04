@@ -1,17 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
@@ -30,29 +22,17 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{196857BA-5A0C-4753-A7B7-600D96402000}</ProjectGuid>
     <RootNamespace>Project1</RootNamespace>
-    <ProjectName>Swig</ProjectName>
+    <ProjectName>02_Swig</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
@@ -66,31 +46,19 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <CustomBuildAfterTargets>Build</CustomBuildAfterTargets>
     <TargetExt>
     </TargetExt>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>Swig</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <CustomBuildAfterTargets>Build</CustomBuildAfterTargets>
     <TargetExt />
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <CustomBuildAfterTargets>Build</CustomBuildAfterTargets>
-    <TargetExt />
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <CustomBuildAfterTargets>Build</CustomBuildAfterTargets>
-    <TargetExt />
+    <TargetName>Swig</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -101,10 +69,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>
       </OutputFile>
-      <AdditionalLibraryDirectories>C:\Python30\libs;C:\Python30\include;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(PYTHON_ROOT)libs;$(PYTHON_ROOT)include;</AdditionalLibraryDirectories>
     </Link>
     <CustomBuildStep>
-      <Command>C:\swigwin-3.0.5\swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppWrapper.dll -outdir ../CsWrapper/Generated -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
+      <Command>md ..\CsWrapper\Generated
+swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppWrapper.dll -outdir ../CsWrapper/Generated -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
       <Message>Doing the SWIG</Message>
       <Outputs>../CppWrapper/BlenderApiWrapper.cpp</Outputs>
       <Inputs> $(ProjectDir)CppApi.i</Inputs>
@@ -123,43 +92,10 @@
       </AdditionalLibraryDirectories>
     </Link>
     <CustomBuildStep>
-      <Command>C:\swigwin-3.0.5\swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppWrapper.dll -outdir ../CsWrapper/Generated -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
+      <Command>md ..\CsWrapper\Generated
+swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppWrapper.dll -outdir ../CsWrapper/Generated -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
       <Message>Doing the SWIG</Message>
       <Outputs>../CppWrapper/BlenderApiWrapper.cpp</Outputs>
-      <Inputs> $(ProjectDir)CppApi.i</Inputs>
-    </CustomBuildStep>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <OutputFile>
-      </OutputFile>
-    </Link>
-    <CustomBuildStep>
-      <Command>swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppApi.dll -outdir ../CsWrapper -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
-      <Message>Doing the SWIG</Message>
-      <Outputs>../CppWrapper/C4dApiWrapper.cpp</Outputs>
-      <Inputs> $(ProjectDir)CppApi.i</Inputs>
-    </CustomBuildStep>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <OutputFile>
-      </OutputFile>
-    </Link>
-    <CustomBuildStep>
-      <Command>swig -c++  -o ../CppWrapper/CppApiWrapper.cpp -csharp -namespace CppApiWrapper -dllimport CppApi.dll -outdir ../CsWrapper -I"../CppApi" -I"include"  "$(ProjectDir)CppApi.i"</Command>
-      <Message>Doing the SWIG</Message>
-      <Outputs>../CppWrapper/C4dApiWrapper.cpp</Outputs>
       <Inputs> $(ProjectDir)CppApi.i</Inputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>

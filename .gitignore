@@ -91,6 +91,8 @@ dlldata.c
 *.svclog
 *.scc
 
+!Fusee.Math.Core.dll
+
 # Chutzpah Test files
 _Chutzpah*
 

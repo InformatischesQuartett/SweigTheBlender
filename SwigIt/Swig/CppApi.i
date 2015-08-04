@@ -20,9 +20,8 @@
 %rename("%(regex:/(\w*)string_to(\w*)/$ignore/)s") "";
 %rename("%(regex:/(\w*)to_string(\w*)/$ignore/)s") "";
 
-
-
-
+// ignoring pyObjRef
+%ignore pyObjRef;
 
 //This converts std::Vector<int> in to a class called IntVector
 // IntVector implemnts IEnumerable<> and IList<>#
