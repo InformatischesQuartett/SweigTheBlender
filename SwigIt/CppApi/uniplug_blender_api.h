@@ -14,9 +14,11 @@ namespace UniplugBL {
 // VECTOR POD MACROS
 #define DEFINE_VECTOR_POD(sname, stype, slength)\
 	struct V##sname##slength {\
+	private:\
 		stype data[slength];\
+	public:\
 		stype& operator[] (const int idx) { return data[idx]; }\
-	};\
+	};
 
 DEFINE_VECTOR_POD(FLOAT, float, 2)
 DEFINE_VECTOR_POD(FLOAT, float, 3)
