@@ -20,6 +20,12 @@ namespace CsClient
             var scene = context.scene();
             var volume = scene.audio_volume();
 
+            var objects = scene.objects();
+            var cube = objects["Cube"];
+            var loc = cube.location();
+
+            pyUni.print("Location of the Cube: " + loc);
+
             if (volume > 0)
             {
                 pyUni.print("Volume is above 0. Muting.");

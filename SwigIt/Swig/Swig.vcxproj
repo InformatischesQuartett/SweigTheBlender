@@ -14,10 +14,13 @@
     <None Include="CppApi.i" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Dummy.h" />
+    <ClInclude Include="_Dummy.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Dummy.cpp" />
+    <ClCompile Include="_Dummy.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="POD_Mapping.i" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{196857BA-5A0C-4753-A7B7-600D96402000}</ProjectGuid>
