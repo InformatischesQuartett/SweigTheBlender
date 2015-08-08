@@ -12,6 +12,7 @@
 #include "uniplug_blender_api.h"
 
 %}
+
 %include <windows.i>
 /* converting std::string */
 %include "std_string.i"
@@ -46,7 +47,7 @@
 // Mapping std::map<std::string, ANY> maps to C#
 
 %define %std_templates(DATA_TYPE)
-%template(String_ ## DATA_TYPE ## _Map) std::map<std::string, DATA_TYPE>;
+%template(String_ ## DATA_TYPE ## _Map) std::map<std::string, UniplugBL::DATA_TYPE>;
 %enddef
 
 %std_templates(Bone);
