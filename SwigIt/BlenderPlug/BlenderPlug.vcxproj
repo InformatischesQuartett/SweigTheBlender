@@ -63,9 +63,9 @@
     </Link>
     <PostBuildEvent>
       <Command>python setup.py build
-copy "build\lib.win-amd64-3.4\*.*" "$(BLENDER_ROOT)\Blender\2.72\scripts\addons\fusee\"
-copy "..\bin\*.*" "$(BLENDER_ROOT)Blender\2.72\scripts\addons\fusee\"
-copy "..\bin\*.*" "$(BLENDER_ROOT)Blender\"</Command>
+copy "build\lib.win-amd64-3.4\*.*" "$(BLENDER_ROOT)scripts\addons\fusee\"
+copy "..\bin\*.*" "$(BLENDER_ROOT)scripts\addons\fusee\"
+copy "..\bin\*.*" "$(BLENDER_ROOT)..\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -92,9 +92,9 @@ copy "..\bin\*.*" "$(BLENDER_ROOT)Blender\"</Command>
     </CustomBuildStep>
     <PostBuildEvent>
       <Command>python setup.py build
-copy "build\lib.win-amd64-3.4\*.*" "$(BLENDER_ROOT)\Blender\2.72\scripts\addons\fusee\"
-copy "..\bin\*.*" "$(BLENDER_ROOT)Blender\2.72\scripts\addons\fusee\"
-copy "..\bin\*.*" "$(BLENDER_ROOT)Blender\"</Command>
+copy "build\lib.win-amd64-3.4\*.*" "$(BLENDER_ROOT)scripts\addons\fusee\"
+copy "..\bin\*.*" "$(BLENDER_ROOT)scripts\addons\fusee\"
+copy "..\bin\*.*" "$(BLENDER_ROOT)..\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>

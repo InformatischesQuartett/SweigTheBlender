@@ -17,10 +17,10 @@
 	a. Open: System Properties -> Advanced system settings -> Advanced -> Environment Variables
 
 	b. Add the path to your SWIG and Python folders to the PATH variable
-	   -> e.g.: D:\swigwin-3.0.6\;D:\Python34;
+	   -> e.g.: D:\swigwin-3.0.6\;D:\Python34\;
 
-	c. Add a new variable BLENDER_ROOT and set it to the path of your Blender folder
-	   -> e.g.: D:\Blender Foundation\
+	c. Add a new variable BLENDER_ROOT and set it to the path of your Blender version folder
+	   -> e.g.: D:\Blender Foundation\Blender\2.72\
 
 	d. Add a new variable PYTHON_ROOT and set its value to the path of your Python folder
 	   -> e.g.: D:\Python34\
@@ -42,8 +42,8 @@
 > 6. Build projects 04_CsWrapper, 05_CsClient, 06_ManagedBridge, and 07_BlenderPlug in that order. Again, use "Project only".
 
 
-> 7. Set 07_BlenderPlug as the starting project. Open the project properties and go to Debugging. Set the command property
-     value to the path to your blender-app.exe and the command arguments properties value to the path of your Blender folder.
+> 7. Set 07_BlenderPlug as the starting project. Open the project properties and go to "Debugging". Set the command property
+     value to the path of your blender-app.exe and the working directory property value to the path of your Blender folder.
      -> e.g.: D:\Blender Foundation\Blender\blender-app.exe    and    D:\Blender Foundation\Blender\
 
    
