@@ -91,6 +91,7 @@ dlldata.c
 *.svclog
 *.scc
 
+CppApiWrapper.*
 !Fusee.Math.Core.dll
 
 # Chutzpah Test files
