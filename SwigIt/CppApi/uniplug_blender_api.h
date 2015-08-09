@@ -1,4 +1,3 @@
-
 #ifndef __UNIPLUG_BLENDER_CPP_H__
 #define __UNIPLUG_BLENDER_CPP_H__
 
@@ -10,20 +9,6 @@
 #include <Python.h>
 
 namespace UniplugBL {
-
-// VECTOR POD MACROS
-#define DEFINE_VECTOR_POD(sname, stype, slength)\
-	struct V##sname##slength {\
-	private:\
-		stype data[slength];\
-	public:\
-		stype& operator[] (const int idx) { return data[idx]; }\
-	};
-
-DEFINE_VECTOR_POD(FLOAT, float, 2)
-DEFINE_VECTOR_POD(FLOAT, float, 3)
-DEFINE_VECTOR_POD(FLOAT, float, 4)
-DEFINE_VECTOR_POD(FLOAT, float, 16)
 
 // PROPERTY MACROS
 #define PRIMITIVE_TYPES_GETTER(stype, sconv, sidentifier)\
@@ -40,17 +25,6 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 #define POD_VECTOR_TYPES_GETTER(stype, sconv, sidentifier, slength)\
 	PyObject *seqval = PyObject_GetAttrString(pyobjref, sidentifier);\
 	V##stype##slength resarr;\
-	for (int i = 0; i < slength; i++) {\
-		PyObject* item = PySequence_GetItem(seqval, i);\
-		resarr[i] = sconv;\
-		Py_CLEAR(item);\
-	}\
-	Py_CLEAR(seqval);\
-	return resarr;
-
-#define PRIMITIVE_TYPES_ARRAY_GETTER(stype, sconv, sidentifier, slength)\
-	PyObject *seqval = PyObject_GetAttrString(pyobjref, sidentifier);\
-	std::array<stype, slength> resarr;\
 	for (int i = 0; i < slength; i++) {\
 		PyObject* item = PySequence_GetItem(seqval, i);\
 		resarr[i] = sconv;\
@@ -174,14 +148,6 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 	senum##_enum sidentifier##_res = static_cast<senum##_enum>(string_to_##senum.at(sidentifier##_str));\
 	Py_CLEAR(sidentifier##_str_obj);\
 
-#define PRIMITIVE_TYPES_ARRAY_CONV(sidentifier, stype, sconv, slength)\
-	std::array<stype, slength> sidentifier##_res;\
-	for (int i = 0; i < slength; i++) {\
-		PyObject* item = PySequence_GetItem(sidentifier##_obj, i);\
-		sidentifier##_res[i] = sconv;\
-		Py_CLEAR(item);\
-	}
-
 #define POD_VECTOR_TYPES_CONV(sidentifier, stype, sconv, slength)\
 	V##stype##slength sidentifier##_res;\
 	for (int i = 0; i < slength; i++) {\
@@ -189,6 +155,41 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 		sidentifier##_res[i] = sconv;\
 		Py_CLEAR(item);\
 	}
+
+
+// VECTOR POD MACROS
+#define DEFINE_VECTOR_POD(sname, stype, slength)\
+	struct V##sname##slength {\
+	private:\
+		stype data[slength];\
+	public:\
+		stype get_value(const int idx) { return data[idx]; }\
+		void set_value(const int idx, stype value) { data[idx] = value; }\
+		stype& operator[] (const int idx) { return data[idx]; }\
+	};
+
+DEFINE_VECTOR_POD(BOOL, bool, 3);
+DEFINE_VECTOR_POD(BOOL, bool, 8);
+DEFINE_VECTOR_POD(BOOL, bool, 16);
+DEFINE_VECTOR_POD(BOOL, bool, 18);
+DEFINE_VECTOR_POD(BOOL, bool, 20);
+DEFINE_VECTOR_POD(BOOL, bool, 30);
+DEFINE_VECTOR_POD(BOOL, bool, 32);
+DEFINE_VECTOR_POD(INT, int, 1);
+DEFINE_VECTOR_POD(INT, int, 2);
+DEFINE_VECTOR_POD(INT, int, 3);
+DEFINE_VECTOR_POD(INT, int, 4);
+DEFINE_VECTOR_POD(INT, int, 8);
+DEFINE_VECTOR_POD(FLOAT, float, 1);
+DEFINE_VECTOR_POD(FLOAT, float, 2);
+DEFINE_VECTOR_POD(FLOAT, float, 3);
+DEFINE_VECTOR_POD(FLOAT, float, 4);
+DEFINE_VECTOR_POD(FLOAT, float, 8);
+DEFINE_VECTOR_POD(FLOAT, float, 9);
+DEFINE_VECTOR_POD(FLOAT, float, 12);
+DEFINE_VECTOR_POD(FLOAT, float, 16);
+DEFINE_VECTOR_POD(FLOAT, float, 24);
+DEFINE_VECTOR_POD(FLOAT, float, 32);
 
 class Struct;
 class Property;
@@ -2128,11 +2129,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "default", value)
 	}
 
-	std::array<bool, 3> default_array() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "default_array", 3)
+	VBOOL3 default_array() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "default_array", 3)
 	}
 
-	void default_array(bool values[3]) {
+	void default_array(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "default_array", 3)
 	}
 
@@ -2159,11 +2160,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "default", value)
 	}
 
-	std::array<int, 3> default_array() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "default_array", 3)
+	VINT3 default_array() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "default_array", 3)
 	}
 
-	void default_array(int values[3]) {
+	void default_array(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "default_array", 3)
 	}
 
@@ -3188,11 +3189,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "is_image_custom", value)
 	}
 
-	std::array<int, 2> image_size() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "image_size", 2)
+	VINT2 image_size() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "image_size", 2)
 	}
 
-	void image_size(int values[2]) {
+	void image_size(VINT2 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "image_size", 2)
 	}
 
@@ -3212,11 +3213,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "is_icon_custom", value)
 	}
 
-	std::array<int, 2> icon_size() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "icon_size", 2)
+	VINT2 icon_size() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "icon_size", 2)
 	}
 
-	void icon_size(int values[2]) {
+	void icon_size(VINT2 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "icon_size", 2)
 	}
 
@@ -3263,11 +3264,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "int", value)
 	}
 
-	std::array<int, 1> int_array() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "int_array", 1)
+	VINT1 int_array() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "int_array", 1)
 	}
 
-	void int_array(int values[1]) {
+	void int_array(VINT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "int_array", 1)
 	}
 
@@ -3279,11 +3280,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "float", value)
 	}
 
-	std::array<float, 1> float_array() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "float_array", 1)
+	VFLOAT1 float_array() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "float_array", 1)
 	}
 
-	void float_array(float values[1]) {
+	void float_array(VFLOAT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "float_array", 1)
 	}
 
@@ -3295,11 +3296,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "double", value)
 	}
 
-	std::array<float, 1> double_array() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "double_array", 1)
+	VFLOAT1 double_array() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "double_array", 1)
 	}
 
-	void double_array(float values[1]) {
+	void double_array(VFLOAT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "double_array", 1)
 	}
 
@@ -5182,11 +5183,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "filepath", value)
 	}
 
-	std::array<int, 3> resolution() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "resolution", 3)
+	VINT3 resolution() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "resolution", 3)
 	}
 
-	void resolution(int values[3]) {
+	void resolution(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "resolution", 3)
 	}
 
@@ -5488,11 +5489,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "zoom", value)
 	}
 
-	std::array<bool, 20> layers_ignore() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_ignore", 20)
+	VBOOL20 layers_ignore() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_ignore", 20)
 	}
 
-	void layers_ignore(bool values[20]) {
+	void layers_ignore(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_ignore", 20)
 	}
 
@@ -5524,7 +5525,7 @@ public:
 		PYTHON_FUNCTION_CALL("clear")
 	}
 
-	void save(const std::string filepath, Scene scene, float layout[12]);
+	void save(const std::string filepath, Scene scene, VFLOAT12 layout);
 };
 
 class TexMapping : public pyObjRef {
@@ -11584,11 +11585,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "operation", prop_type_items_to_string.at(value))
 	}
 
-	std::array<bool, 30> states() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "states", 30)
+	VBOOL30 states() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "states", 30)
 	}
 
-	void states(bool values[30]) {
+	void states(VBOOL30 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "states", 30)
 	}
 };
@@ -12106,19 +12107,19 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "ghost_type", prop_ghost_type_items_to_string.at(value))
 	}
 
-	std::array<bool, 32> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 32)
+	VBOOL32 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 32)
 	}
 
-	void layers(bool values[32]) {
+	void layers(VBOOL32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 32)
 	}
 
-	std::array<bool, 32> layers_protected() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_protected", 32)
+	VBOOL32 layers_protected() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_protected", 32)
 	}
 
-	void layers_protected(bool values[32]) {
+	void layers_protected(VBOOL32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_protected", 32)
 	}
 
@@ -12255,11 +12256,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "name", value)
 	}
 
-	std::array<bool, 32> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 32)
+	VBOOL32 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 32)
 	}
 
-	void layers(bool values[32]) {
+	void layers(VBOOL32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 32)
 	}
 
@@ -12447,11 +12448,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "select_tail", value)
 	}
 
-	std::array<float, 9> matrix() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "matrix", 9)
+	VFLOAT9 matrix() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "matrix", 9)
 	}
 
-	void matrix(float values[9]) {
+	void matrix(VFLOAT9 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "matrix", 9)
 	}
 
@@ -12547,11 +12548,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "name", value)
 	}
 
-	std::array<bool, 32> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 32)
+	VBOOL32 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 32)
 	}
 
-	void layers(bool values[32]) {
+	void layers(VBOOL32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 32)
 	}
 
@@ -18636,11 +18637,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "chain_count", value)
 	}
 
-	std::array<float, 32> joint_bindings() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "joint_bindings", 32)
+	VFLOAT32 joint_bindings() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "joint_bindings", 32)
 	}
 
-	void joint_bindings(float values[32]) {
+	void joint_bindings(VFLOAT32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "joint_bindings", 32)
 	}
 
@@ -21901,11 +21902,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "poly_order", value)
 	}
 
-	std::array<float, 32> coefficients() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "coefficients", 32)
+	VFLOAT32 coefficients() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "coefficients", 32)
 	}
 
-	void coefficients(float values[32]) {
+	void coefficients(VFLOAT32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "coefficients", 32)
 	}
 };
@@ -23381,11 +23382,11 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "dupli_offset", 3)
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
@@ -23806,11 +23807,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "depth", value)
 	}
 
-	std::array<int, 2> size() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "size", 2)
+	VINT2 size() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "size", 2)
 	}
 
-	void size(int values[2]) {
+	void size(VINT2 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "size", 2)
 	}
 
@@ -31986,11 +31987,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "use_autopack", value)
 	}
 
-	std::array<int, 3> version() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "version", 3)
+	VINT3 version() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "version", 3)
 	}
 
-	void version(int values[3]) {
+	void version(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "version", 3)
 	}
 
@@ -32537,11 +32538,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "paint_clone_slot", value)
 	}
 
-	std::array<bool, 18> use_textures() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "use_textures", 18)
+	VBOOL18 use_textures() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "use_textures", 18)
 	}
 
-	void use_textures(bool values[18]) {
+	void use_textures(VBOOL18 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "use_textures", 18)
 	}
 
@@ -34826,7 +34827,7 @@ public:
 	}
 
 	struct calc_smooth_groups_result {
-		std::array<int, 1> poly_groups;
+		VINT1 poly_groups;
 		int groups;
 	};
 
@@ -34834,7 +34835,7 @@ public:
 		PYTHON_FUNCTION_ARGS_CALL("calc_smooth_groups", "i", use_bitflags)
 		CREATE_MULTIPLE_PYOBJS(*poly_groups_obj, *groups_obj)
 		UNPACK_TUPLE_TO_OBJS("calc_smooth_groups", 2, &poly_groups_obj, &groups_obj)
-		PRIMITIVE_TYPES_ARRAY_CONV(poly_groups, int, PyLong_AsLong(item), 1)
+		POD_VECTOR_TYPES_CONV(poly_groups, INT, PyLong_AsLong(item), 1)
 		PRIMITIVE_TYPES_CONV(groups, int, PyLong_AsLong(groups_obj))
 		NONCLASS_TYPES_RETURN(poly_groups_res, groups_res)
 	}
@@ -35043,11 +35044,11 @@ protected:
 public:
 	MeshEdge() : pyObjRef(0) { }
 
-	std::array<int, 2> vertices() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "vertices", 2)
+	VINT2 vertices() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "vertices", 2)
 	}
 
-	void vertices(int values[2]) {
+	void vertices(VINT2 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "vertices", 2)
 	}
 
@@ -35130,19 +35131,19 @@ protected:
 public:
 	MeshTessFace() : pyObjRef(0) { }
 
-	std::array<int, 4> vertices() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "vertices", 4)
+	VINT4 vertices() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "vertices", 4)
 	}
 
-	void vertices(int values[4]) {
+	void vertices(VINT4 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "vertices", 4)
 	}
 
-	std::array<int, 4> vertices_raw() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "vertices_raw", 4)
+	VINT4 vertices_raw() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "vertices_raw", 4)
 	}
 
-	void vertices_raw(int values[4]) {
+	void vertices_raw(VINT4 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "vertices_raw", 4)
 	}
 
@@ -35186,11 +35187,11 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "normal", 3)
 	}
 
-	std::array<float, 12> split_normals() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "split_normals", 12)
+	VFLOAT12 split_normals() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "split_normals", 12)
 	}
 
-	void split_normals(float values[12]) {
+	void split_normals(VFLOAT12 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "split_normals", 12)
 	}
 
@@ -35280,11 +35281,11 @@ protected:
 public:
 	MeshPolygon() : pyObjRef(0) { }
 
-	std::array<int, 3> vertices() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "vertices", 3)
+	VINT3 vertices() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "vertices", 3)
 	}
 
-	void vertices(int values[3]) {
+	void vertices(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "vertices", 3)
 	}
 
@@ -35516,19 +35517,19 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "uv4", 2)
 	}
 
-	std::array<float, 8> uv() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "uv", 8)
+	VFLOAT8 uv() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "uv", 8)
 	}
 
-	void uv(float values[8]) {
+	void uv(VFLOAT8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "uv", 8)
 	}
 
-	std::array<float, 8> uv_raw() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "uv_raw", 8)
+	VFLOAT8 uv_raw() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "uv_raw", 8)
 	}
 
-	void uv_raw(float values[8]) {
+	void uv_raw(VFLOAT8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "uv_raw", 8)
 	}
 };
@@ -37910,11 +37911,11 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "hair_grid_max", 3)
 	}
 
-	std::array<int, 3> hair_grid_resolution() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "hair_grid_resolution", 3)
+	VINT3 hair_grid_resolution() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "hair_grid_resolution", 3)
 	}
 
-	void hair_grid_resolution(int values[3]) {
+	void hair_grid_resolution(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "hair_grid_resolution", 3)
 	}
 };
@@ -48218,19 +48219,19 @@ protected:
 public:
 	CompositorNodeMapValue() : CompositorNode(0) { }
 
-	std::array<float, 1> offset() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "offset", 1)
+	VFLOAT1 offset() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "offset", 1)
 	}
 
-	void offset(float values[1]) {
+	void offset(VFLOAT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "offset", 1)
 	}
 
-	std::array<float, 1> size() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "size", 1)
+	VFLOAT1 size() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "size", 1)
 	}
 
-	void size(float values[1]) {
+	void size(VFLOAT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "size", 1)
 	}
 
@@ -48250,19 +48251,19 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "use_max", value)
 	}
 
-	std::array<float, 1> min() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "min", 1)
+	VFLOAT1 min() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "min", 1)
 	}
 
-	void min(float values[1]) {
+	void min(VFLOAT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "min", 1)
 	}
 
-	std::array<float, 1> max() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "max", 1)
+	VFLOAT1 max() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "max", 1)
 	}
 
-	void max(float values[1]) {
+	void max(VFLOAT1 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "max", 1)
 	}
 
@@ -53775,19 +53776,19 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "mode", object_mode_items_to_string.at(value))
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
-	std::array<bool, 8> layers_local_view() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_local_view", 8)
+	VBOOL8 layers_local_view() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_local_view", 8)
 	}
 
-	void layers_local_view(bool values[8]) {
+	void layers_local_view(VBOOL8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_local_view", 8)
 	}
 
@@ -53799,11 +53800,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "select", value)
 	}
 
-	std::array<float, 24> bound_box() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "bound_box", 24)
+	VFLOAT24 bound_box() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "bound_box", 24)
 	}
 
-	void bound_box(float values[24]) {
+	void bound_box(VFLOAT24 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "bound_box", 24)
 	}
 
@@ -53839,11 +53840,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "parent_type", parent_type_items_to_string.at(value))
 	}
 
-	std::array<int, 3> parent_vertices() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "parent_vertices", 3)
+	VINT3 parent_vertices() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "parent_vertices", 3)
 	}
 
-	void parent_vertices(int values[3]) {
+	void parent_vertices(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "parent_vertices", 3)
 	}
 
@@ -54040,19 +54041,19 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "delta_scale", 3)
 	}
 
-	std::array<bool, 3> lock_location() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "lock_location", 3)
+	VBOOL3 lock_location() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "lock_location", 3)
 	}
 
-	void lock_location(bool values[3]) {
+	void lock_location(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "lock_location", 3)
 	}
 
-	std::array<bool, 3> lock_rotation() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "lock_rotation", 3)
+	VBOOL3 lock_rotation() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "lock_rotation", 3)
 	}
 
-	void lock_rotation(bool values[3]) {
+	void lock_rotation(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "lock_rotation", 3)
 	}
 
@@ -54072,11 +54073,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "lock_rotations_4d", value)
 	}
 
-	std::array<bool, 3> lock_scale() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "lock_scale", 3)
+	VBOOL3 lock_scale() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "lock_scale", 3)
 	}
 
-	void lock_scale(bool values[3]) {
+	void lock_scale(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "lock_scale", 3)
 	}
 
@@ -54572,7 +54573,7 @@ public:
 		float scale_return;
 	};
 
-	camera_fit_coords_result camera_fit_coords(Scene scene, float coordinates[1]);
+	camera_fit_coords_result camera_fit_coords(Scene scene, VFLOAT1 coordinates);
 
 	enum mesh_type_items_enum {
 		mesh_type_items_PREVIEW = 1,	
@@ -54902,19 +54903,19 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "fall_speed", value)
 	}
 
-	std::array<bool, 16> collision_group() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "collision_group", 16)
+	VBOOL16 collision_group() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "collision_group", 16)
 	}
 
-	void collision_group(bool values[16]) {
+	void collision_group(VBOOL16 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "collision_group", 16)
 	}
 
-	std::array<bool, 16> collision_mask() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "collision_mask", 16)
+	VBOOL16 collision_mask() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "collision_mask", 16)
 	}
 
-	void collision_mask(bool values[16]) {
+	void collision_mask(VBOOL16 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "collision_mask", 16)
 	}
 
@@ -55085,27 +55086,27 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "obstacle_radius", value)
 	}
 
-	std::array<bool, 30> states_visible() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "states_visible", 30)
+	VBOOL30 states_visible() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "states_visible", 30)
 	}
 
-	void states_visible(bool values[30]) {
+	void states_visible(VBOOL30 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "states_visible", 30)
 	}
 
-	std::array<bool, 30> used_states() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "used_states", 30)
+	VBOOL30 used_states() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "used_states", 30)
 	}
 
-	void used_states(bool values[30]) {
+	void used_states(VBOOL30 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "used_states", 30)
 	}
 
-	std::array<bool, 30> states_initial() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "states_initial", 30)
+	VBOOL30 states_initial() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "states_initial", 30)
 	}
 
-	void states_initial(bool values[30]) {
+	void states_initial(VBOOL30 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "states_initial", 30)
 	}
 
@@ -55144,19 +55145,19 @@ public:
 		CLASS_TYPES_GETTER(Object, "object")
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
-	std::array<bool, 8> layers_local_view() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_local_view", 8)
+	VBOOL8 layers_local_view() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_local_view", 8)
 	}
 
-	void layers_local_view(bool values[8]) {
+	void layers_local_view(VBOOL8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_local_view", 8)
 	}
 
@@ -55218,13 +55219,13 @@ public:
 	std::map<std::string, int> string_to_assign_mode_items = create_string_to_assign_mode_items();
 	std::map<int, std::string> assign_mode_items_to_string = create_assign_mode_items_to_string();
 
-	void add(int index[1], float weight, assign_mode_items_enum type) {
+	void add(VINT1 index, float weight, assign_mode_items_enum type) {
 		ARRAY_TO_PYOBJ(index, "i", 1)
 		PYTHON_FUNCTION_ARGS_CALL("add", "ifs", index_tupleval, weight, assign_mode_items_to_string.at(type))
 		DECREF_ARRAY_ITEMS(index, 1)
 	}
 
-	void remove(int index[1]) {
+	void remove(VINT1 index) {
 		ARRAY_TO_PYOBJ(index, "i", 1)
 		PYTHON_FUNCTION_ARGS_CALL("remove", "i", index_tupleval)
 		DECREF_ARRAY_ITEMS(index, 1)
@@ -55315,11 +55316,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "index", value)
 	}
 
-	std::array<int, 8> persistent_id() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "persistent_id", 8)
+	VINT8 persistent_id() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "persistent_id", 8)
 	}
 
-	void persistent_id(int values[8]) {
+	void persistent_id(VINT8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "persistent_id", 8)
 	}
 
@@ -56712,19 +56713,19 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "location_mass_center", 3)
 	}
 
-	std::array<float, 9> rotation_estimate() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "rotation_estimate", 9)
+	VFLOAT9 rotation_estimate() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "rotation_estimate", 9)
 	}
 
-	void rotation_estimate(float values[9]) {
+	void rotation_estimate(VFLOAT9 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "rotation_estimate", 9)
 	}
 
-	std::array<float, 9> scale_estimate() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "scale_estimate", 9)
+	VFLOAT9 scale_estimate() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "scale_estimate", 9)
 	}
 
-	void scale_estimate(float values[9]) {
+	void scale_estimate(VFLOAT9 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "scale_estimate", 9)
 	}
 
@@ -60224,19 +60225,19 @@ public:
 
 	BoneGroup bone_group();
 
-	std::array<bool, 3> lock_location() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "lock_location", 3)
+	VBOOL3 lock_location() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "lock_location", 3)
 	}
 
-	void lock_location(bool values[3]) {
+	void lock_location(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "lock_location", 3)
 	}
 
-	std::array<bool, 3> lock_rotation() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "lock_rotation", 3)
+	VBOOL3 lock_rotation() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "lock_rotation", 3)
 	}
 
-	void lock_rotation(bool values[3]) {
+	void lock_rotation(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "lock_rotation", 3)
 	}
 
@@ -60256,11 +60257,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "lock_rotations_4d", value)
 	}
 
-	std::array<bool, 3> lock_scale() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "lock_scale", 3)
+	VBOOL3 lock_scale() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "lock_scale", 3)
 	}
 
-	void lock_scale(bool values[3]) {
+	void lock_scale(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "lock_scale", 3)
 	}
 
@@ -60685,11 +60686,11 @@ public:
 		CLASS_TYPES_GETTER(Object, "camera_override")
 	}
 
-	std::array<bool, 20> layer_override() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layer_override", 20)
+	VBOOL20 layer_override() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layer_override", 20)
 	}
 
-	void layer_override(bool values[20]) {
+	void layer_override(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layer_override", 20)
 	}
 
@@ -60969,27 +60970,27 @@ public:
 		CLASS_TYPES_GETTER(Group, "light_override")
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
-	std::array<bool, 20> layers_zmask() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_zmask", 20)
+	VBOOL20 layers_zmask() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_zmask", 20)
 	}
 
-	void layers_zmask(bool values[20]) {
+	void layers_zmask(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_zmask", 20)
 	}
 
-	std::array<bool, 20> layers_exclude() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_exclude", 20)
+	VBOOL20 layers_exclude() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_exclude", 20)
 	}
 
-	void layers_exclude(bool values[20]) {
+	void layers_exclude(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_exclude", 20)
 	}
 
@@ -61863,11 +61864,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "collision_margin", value)
 	}
 
-	std::array<bool, 20> collision_groups() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "collision_groups", 20)
+	VBOOL20 collision_groups() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "collision_groups", 20)
 	}
 
-	void collision_groups(bool values[20]) {
+	void collision_groups(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "collision_groups", 20)
 	}
 };
@@ -62261,11 +62262,11 @@ public:
 		MAP_TYPE_GETTER("objects", Object)
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
@@ -63188,11 +63189,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "show_uv_local_view", value)
 	}
 
-	std::array<bool, 3> mesh_select_mode() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "mesh_select_mode", 3)
+	VBOOL3 mesh_select_mode() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "mesh_select_mode", 3)
 	}
 
-	void mesh_select_mode(bool values[3]) {
+	void mesh_select_mode(VBOOL3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "mesh_select_mode", 3)
 	}
 
@@ -65035,11 +65036,11 @@ protected:
 public:
 	TransformOrientation() : pyObjRef(0) { }
 
-	std::array<float, 9> matrix() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "matrix", 9)
+	VFLOAT9 matrix() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "matrix", 9)
 	}
 
-	void matrix(float values[9]) {
+	void matrix(VFLOAT9 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "matrix", 9)
 	}
 
@@ -66785,27 +66786,27 @@ public:
 		CLASS_TYPES_GETTER(Group, "light_override")
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
-	std::array<bool, 20> layers_zmask() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_zmask", 20)
+	VBOOL20 layers_zmask() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_zmask", 20)
 	}
 
-	void layers_zmask(bool values[20]) {
+	void layers_zmask(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_zmask", 20)
 	}
 
-	std::array<bool, 20> layers_exclude() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_exclude", 20)
+	VBOOL20 layers_exclude() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_exclude", 20)
 	}
 
-	void layers_exclude(bool values[20]) {
+	void layers_exclude(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_exclude", 20)
 	}
 
@@ -68208,10 +68209,10 @@ public:
 		NONCLASS_TYPES_RETURN(result_res)
 	}
 
-	std::array<int, 2> view_to_region(float x, float y, bool clip = true) {
+	VINT2 view_to_region(float x, float y, bool clip = true) {
 		PYTHON_FUNCTION_ARGS_CALL("view_to_region", "ffi", x, y, clip)
 		CREATE_SINGLE_PYOBJ(result)
-		PRIMITIVE_TYPES_ARRAY_CONV(result, int, PyLong_AsLong(item), 2)
+		POD_VECTOR_TYPES_CONV(result, INT, PyLong_AsLong(item), 2)
 		NONCLASS_TYPES_RETURN(result_res)
 	}
 };
@@ -68320,11 +68321,11 @@ protected:
 public:
 	Sculpt() : Paint(0) { }
 
-	std::array<int, 3> radial_symmetry() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "radial_symmetry", 3)
+	VINT3 radial_symmetry() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "radial_symmetry", 3)
 	}
 
-	void radial_symmetry(int values[3]) {
+	void radial_symmetry(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "radial_symmetry", 3)
 	}
 
@@ -68635,11 +68636,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "normal_angle", value)
 	}
 
-	std::array<int, 2> screen_grab_size() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "screen_grab_size", 2)
+	VINT2 screen_grab_size() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "screen_grab_size", 2)
 	}
 
-	void screen_grab_size(int values[2]) {
+	void screen_grab_size(VINT2 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "screen_grab_size", 2)
 	}
 
@@ -72979,35 +72980,35 @@ public:
 		PRIMITIVE_TYPES_SETTER("f", "vorticity", value)
 	}
 
-	std::array<float, 32> density_grid() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "density_grid", 32)
+	VFLOAT32 density_grid() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "density_grid", 32)
 	}
 
-	void density_grid(float values[32]) {
+	void density_grid(VFLOAT32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "density_grid", 32)
 	}
 
-	std::array<float, 32> velocity_grid() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "velocity_grid", 32)
+	VFLOAT32 velocity_grid() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "velocity_grid", 32)
 	}
 
-	void velocity_grid(float values[32]) {
+	void velocity_grid(VFLOAT32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "velocity_grid", 32)
 	}
 
-	std::array<float, 32> flame_grid() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "flame_grid", 32)
+	VFLOAT32 flame_grid() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "flame_grid", 32)
 	}
 
-	void flame_grid(float values[32]) {
+	void flame_grid(VFLOAT32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "flame_grid", 32)
 	}
 
-	std::array<float, 32> color_grid() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "color_grid", 32)
+	VFLOAT32 color_grid() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "color_grid", 32)
 	}
 
-	void color_grid(float values[32]) {
+	void color_grid(VFLOAT32 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "color_grid", 32)
 	}
 
@@ -73027,11 +73028,11 @@ public:
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "start_point", 3)
 	}
 
-	std::array<int, 3> domain_resolution() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "domain_resolution", 3)
+	VINT3 domain_resolution() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "domain_resolution", 3)
 	}
 
-	void domain_resolution(int values[3]) {
+	void domain_resolution(VINT3 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "domain_resolution", 3)
 	}
 
@@ -74290,10 +74291,10 @@ public:
 		PRIMITIVE_TYPES_SETTER("s", "replace_text", value)
 	}
 
-	std::array<int, 2> region_location_from_cursor(int line, int column) {
+	VINT2 region_location_from_cursor(int line, int column) {
 		PYTHON_FUNCTION_ARGS_CALL("region_location_from_cursor", "ii", line, column)
 		CREATE_SINGLE_PYOBJ(result)
-		PRIMITIVE_TYPES_ARRAY_CONV(result, int, PyLong_AsLong(item), 2)
+		POD_VECTOR_TYPES_CONV(result, INT, PyLong_AsLong(item), 2)
 		NONCLASS_TYPES_RETURN(result_res)
 	}
 };
@@ -75316,27 +75317,27 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "lock_camera_and_layers", value)
 	}
 
-	std::array<bool, 20> layers() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers", 20)
+	VBOOL20 layers() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers", 20)
 	}
 
-	void layers(bool values[20]) {
+	void layers(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers", 20)
 	}
 
-	std::array<bool, 8> layers_local_view() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_local_view", 8)
+	VBOOL8 layers_local_view() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_local_view", 8)
 	}
 
-	void layers_local_view(bool values[8]) {
+	void layers_local_view(VBOOL8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_local_view", 8)
 	}
 
-	std::array<bool, 20> layers_used() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(bool, PyLong_AsLong(item)==1, "layers_used", 20)
+	VBOOL20 layers_used() {
+		POD_VECTOR_TYPES_GETTER(BOOL, PyLong_AsLong(item)==1, "layers_used", 20)
 	}
 
-	void layers_used(bool values[20]) {
+	void layers_used(VBOOL20 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "layers_used", 20)
 	}
 
@@ -87281,11 +87282,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "use_proxy", value)
 	}
 
-	std::array<int, 2> size() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(int, PyLong_AsLong(item), "size", 2)
+	VINT2 size() {
+		POD_VECTOR_TYPES_GETTER(INT, PyLong_AsLong(item), "size", 2)
 	}
 
-	void size(int values[2]) {
+	void size(VINT2 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("i", "size", 2)
 	}
 
@@ -88023,11 +88024,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "mute", value)
 	}
 
-	std::array<float, 8> pattern_corners() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "pattern_corners", 8)
+	VFLOAT8 pattern_corners() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "pattern_corners", 8)
 	}
 
-	void pattern_corners(float values[8]) {
+	void pattern_corners(VFLOAT8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "pattern_corners", 8)
 	}
 
@@ -88345,11 +88346,11 @@ public:
 		PRIMITIVE_TYPES_SETTER("i", "frame", value)
 	}
 
-	std::array<float, 8> corners() {
-		PRIMITIVE_TYPES_ARRAY_GETTER(float, (float)PyFloat_AsDouble(item), "corners", 8)
+	VFLOAT8 corners() {
+		POD_VECTOR_TYPES_GETTER(FLOAT, (float)PyFloat_AsDouble(item), "corners", 8)
 	}
 
-	void corners(float values[8]) {
+	void corners(VFLOAT8 values) {
 		PRIMITIVE_TYPES_ARRAY_SETTER("f", "corners", 8)
 	}
 
@@ -89327,7 +89328,7 @@ namespace UniplugBL {
 		CLASS_TYPES_GETTER(Object, "viewpoint_object")
 	}
 
-	void EnvironmentMap::save(const std::string filepath, Scene scene, float layout[12]) {
+	void EnvironmentMap::save(const std::string filepath, Scene scene, VFLOAT12 layout) {
 		ARRAY_TO_PYOBJ(layout, "O", 12)
 		PYTHON_FUNCTION_ARGS_CALL("save", "sOO", filepath, scene.get_pyobjref(), layout_tupleval)
 		DECREF_ARRAY_ITEMS(layout, 12)
@@ -91222,7 +91223,7 @@ namespace UniplugBL {
 		NONCLASS_TYPES_RETURN(matrix_return_res)
 	}
 
-	Object::camera_fit_coords_result Object::camera_fit_coords(Scene scene, float coordinates[1]) {
+	Object::camera_fit_coords_result Object::camera_fit_coords(Scene scene, VFLOAT1 coordinates) {
 		ARRAY_TO_PYOBJ(coordinates, "O", 1)
 		PYTHON_FUNCTION_ARGS_CALL("camera_fit_coords", "OO", scene.get_pyobjref(), coordinates_tupleval)
 		DECREF_ARRAY_ITEMS(coordinates, 1)

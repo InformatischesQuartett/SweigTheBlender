@@ -1,5 +1,26 @@
-// Map TYPE_NAME TO RESULT
-%define %pod_typemaps(DATA_TYPE, TYPE_NAME, RESULT)
+// Extend class TYPE_NAME
+%define %pod_typemaps(DATA_TYPE, TYPE_NAME)
+	%csmethodmodifiers get_value "private";
+	%csmethodmodifiers set_value "private";
+
+	%typemap(cscode) TYPE_NAME
+	%{
+		public DATA_TYPE this[int key]
+		{
+			get
+			{
+				return get_value(key);
+			}
+			set
+			{
+				set_value(key, value);
+			}
+		}
+	%}
+%enddef
+
+// Map TYPE_NAME to RESULT
+%define %fusee_pod_typemaps(DATA_TYPE, TYPE_NAME, RESULT)
 	%ignore "operator []";
 	%ignore TYPE_NAME;
 

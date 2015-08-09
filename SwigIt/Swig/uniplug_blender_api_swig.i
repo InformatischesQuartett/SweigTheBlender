@@ -1,3 +1,26 @@
+%pod_typemaps(bool, UniplugBL::VBOOL3);
+%pod_typemaps(bool, UniplugBL::VBOOL8);
+%pod_typemaps(bool, UniplugBL::VBOOL16);
+%pod_typemaps(bool, UniplugBL::VBOOL18);
+%pod_typemaps(bool, UniplugBL::VBOOL20);
+%pod_typemaps(bool, UniplugBL::VBOOL30);
+%pod_typemaps(bool, UniplugBL::VBOOL32);
+%pod_typemaps(int, UniplugBL::VINT1);
+%pod_typemaps(int, UniplugBL::VINT2);
+%pod_typemaps(int, UniplugBL::VINT3);
+%pod_typemaps(int, UniplugBL::VINT4);
+%pod_typemaps(int, UniplugBL::VINT8);
+%pod_typemaps(float, UniplugBL::VFLOAT1);
+%pod_typemaps(float, UniplugBL::VFLOAT2);
+%pod_typemaps(float, UniplugBL::VFLOAT3);
+%pod_typemaps(float, UniplugBL::VFLOAT4);
+%pod_typemaps(float, UniplugBL::VFLOAT8);
+%pod_typemaps(float, UniplugBL::VFLOAT9);
+%pod_typemaps(float, UniplugBL::VFLOAT12);
+%pod_typemaps(float, UniplugBL::VFLOAT16);
+%pod_typemaps(float, UniplugBL::VFLOAT24);
+%pod_typemaps(float, UniplugBL::VFLOAT32);
+
 %std_templates(Property);
 %std_templates(Function);
 %std_templates(EnumPropertyItem);
