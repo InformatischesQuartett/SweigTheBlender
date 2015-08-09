@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CppApi.i" />
+    <None Include="uniplug_blender_api_swig.i" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="_Dummy.h" />

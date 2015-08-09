@@ -92,7 +92,6 @@ dlldata.c
 *.scc
 
 CppApiWrapper.*
-04_CsWrapper.csproj
 !Fusee.Math.Core.dll
 
 # Chutzpah Test files
