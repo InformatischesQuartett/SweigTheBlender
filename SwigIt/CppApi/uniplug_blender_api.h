@@ -92,7 +92,8 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 
 #define CLASS_TYPES_GETTER(stype, sidentifier)\
 	PyObject *val = PyObject_GetAttrString(pyobjref, sidentifier);\
-	stype restype(val);\
+	stype restype;\
+	restype.set_pyobjref(val);\
 	Py_CLEAR(val);\
 	return restype;
 
@@ -105,7 +106,8 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 		PyObject *str = PyUnicode_AsUTF8String(keyobj);\
 		std::string key = PyBytes_AsString(str);\
 		PyObject *item = PySequence_GetItem(seqval, i);\
-		stype value = stype(item);\
+		stype value;\
+		value.set_pyobjref(item);\
 		resmap.insert(std::pair<std::string, stype>(key, value));\
 		Py_CLEAR(item);\
 		Py_CLEAR(str);\
@@ -137,7 +139,8 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 	PyObject *pyobj = PyObject_CallMethod(pyobjref, sidentifier, sconv, __VA_ARGS__);
 
 #define CLASS_TYPES_RETURN(stype)\
-	stype restype(pyobj);\
+	stype restype;\
+	restype.set_pyobjref(pyobj);\
 	Py_CLEAR(pyobj);\
 	return restype;
 
@@ -158,7 +161,8 @@ DEFINE_VECTOR_POD(FLOAT, float, 16)
 	stype sidentifier##_res = sconv;\
 
 #define CLASS_TYPES_CONV(sidentifier, stype)\
-	stype sidentifier##_res(sidentifier##_obj);\
+	stype sidentifier##_res;\
+	sidentifier##_res.set_pyobjref(sidentifier##_obj);\
 
 #define STRING_TYPE_CONV(sidentifier)\
 	PyObject *sidentifier##_str_obj = PyUnicode_AsUTF8String(sidentifier##_obj);\
@@ -1206,11 +1210,10 @@ protected:
 	PyObject *pyobjref;
 
 	pyObjRef() {};
-	pyObjRef(PyObject* pyobj) : pyobjref(pyobj) { Py_XINCREF(pyobj); }
-	pyObjRef(const pyObjRef &obj) : pyobjref(obj.pyobjref) { Py_XINCREF(obj.pyobjref); }
+	pyObjRef(PyObject* pyobj) { set_pyobjref(pyobj); }
+	pyObjRef(const pyObjRef &obj) { set_pyobjref(obj.pyobjref); }
 	pyObjRef& operator = (const pyObjRef& obj) {
-		Py_XINCREF(obj.pyobjref);
-		pyobjref = obj.pyobjref;
+		set_pyobjref(obj.pyobjref);
 		return *this;
 	}
 
@@ -1222,13 +1225,17 @@ public:
 	PyObject* get_pyobjref() {
 		return pyobjref;
 	}
+	void set_pyobjref(PyObject* ref) {
+		Py_XINCREF(ref); 
+		pyobjref = ref;
+	}
 };
 
 class pyUniplug : public pyObjRef {
 public:
 	pyUniplug() { pyobjref = PyImport_ImportModule("bpy"); }
 
-	void print(std::string msg) {
+	static void print(std::string msg) {
 		std::string prmsg = "print('" + msg + "')";
 		PyRun_SimpleString(prmsg.c_str());
 	}
@@ -1237,8 +1244,9 @@ public:
 };
 
 class Struct : public pyObjRef {
-public:
+protected:
 	Struct(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Struct() : pyObjRef(0) { }
 
 	std::string name() {
@@ -1289,8 +1297,9 @@ public:
 };
 
 class Property : public pyObjRef {
-public:
+protected:
 	Property(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Property() : pyObjRef(0) { }
 
 	std::string name() {
@@ -2106,8 +2115,9 @@ public:
 };
 
 class BoolProperty : public Property {
-public:
+protected:
 	BoolProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	BoolProperty() : Property(0) { }
 
 	bool default_value() {
@@ -2136,8 +2146,9 @@ public:
 };
 
 class IntProperty : public Property {
-public:
+protected:
 	IntProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	IntProperty() : Property(0) { }
 
 	int default_value() {
@@ -2206,8 +2217,9 @@ public:
 };
 
 class FloatProperty : public Property {
-public:
+protected:
 	FloatProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	FloatProperty() : Property(0) { }
 
 	float default_value() {
@@ -2284,8 +2296,9 @@ public:
 };
 
 class StringProperty : public Property {
-public:
+protected:
 	StringProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	StringProperty() : Property(0) { }
 
 	std::string default_value() {
@@ -2306,8 +2319,9 @@ public:
 };
 
 class EnumProperty : public Property {
-public:
+protected:
 	EnumProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	EnumProperty() : Property(0) { }
 
 	enum default_dummy_items_enum {
@@ -2345,8 +2359,9 @@ public:
 };
 
 class EnumPropertyItem : public pyObjRef {
-public:
+protected:
 	EnumPropertyItem(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	EnumPropertyItem() : pyObjRef(0) { }
 
 	std::string name() {
@@ -2951,8 +2966,9 @@ public:
 };
 
 class PointerProperty : public Property {
-public:
+protected:
 	PointerProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	PointerProperty() : Property(0) { }
 
 	Struct fixed_type() {
@@ -2961,8 +2977,9 @@ public:
 };
 
 class CollectionProperty : public Property {
-public:
+protected:
 	CollectionProperty(PyObject* pyobj) : Property(pyobj) {}
+public:
 	CollectionProperty() : Property(0) { }
 
 	Struct fixed_type() {
@@ -2971,8 +2988,9 @@ public:
 };
 
 class Function : public pyObjRef {
-public:
+protected:
 	Function(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Function() : pyObjRef(0) { }
 
 	std::string identifier() {
@@ -3029,8 +3047,9 @@ public:
 };
 
 class BlenderRNA : public pyObjRef {
-public:
+protected:
 	BlenderRNA(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlenderRNA() : pyObjRef(0) { }
 
 	std::map<std::string, Struct> structs() {
@@ -3039,22 +3058,25 @@ public:
 };
 
 class UnknownType : public pyObjRef {
-public:
+protected:
 	UnknownType(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UnknownType() : pyObjRef(0) { }
 
 };
 
 class AnyType : public pyObjRef {
-public:
+protected:
 	AnyType(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AnyType() : pyObjRef(0) { }
 
 };
 
 class ID : public pyObjRef {
-public:
+protected:
 	ID(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ID() : pyObjRef(0) { }
 
 	std::string name() {
@@ -3153,8 +3175,9 @@ public:
 };
 
 class ImagePreview : public pyObjRef {
-public:
+protected:
 	ImagePreview(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ImagePreview() : pyObjRef(0) { }
 
 	bool is_image_custom() {
@@ -3219,8 +3242,9 @@ public:
 };
 
 class PropertyGroupItem : public pyObjRef {
-public:
+protected:
 	PropertyGroupItem(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PropertyGroupItem() : pyObjRef(0) { }
 
 	std::string string_value() {
@@ -3287,8 +3311,9 @@ public:
 };
 
 class PropertyGroup : public pyObjRef {
-public:
+protected:
 	PropertyGroup(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PropertyGroup() : pyObjRef(0) { }
 
 	std::string name() {
@@ -3301,8 +3326,9 @@ public:
 };
 
 class Library : public ID {
-public:
+protected:
 	Library(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Library() : ID(0) { }
 
 	std::string filepath() {
@@ -3321,8 +3347,9 @@ public:
 };
 
 class Texture : public ID {
-public:
+protected:
 	Texture(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Texture() : ID(0) { }
 
 	enum texture_type_items_enum {
@@ -3460,8 +3487,9 @@ public:
 };
 
 class CloudsTexture : public Texture {
-public:
+protected:
 	CloudsTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	CloudsTexture() : Texture(0) { }
 
 	float noise_scale() {
@@ -3570,8 +3598,9 @@ public:
 };
 
 class WoodTexture : public Texture {
-public:
+protected:
 	WoodTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	WoodTexture() : Texture(0) { }
 
 	float noise_scale() {
@@ -3707,8 +3736,9 @@ public:
 };
 
 class MarbleTexture : public Texture {
-public:
+protected:
 	MarbleTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	MarbleTexture() : Texture(0) { }
 
 	float noise_scale() {
@@ -3851,8 +3881,9 @@ public:
 };
 
 class MagicTexture : public Texture {
-public:
+protected:
 	MagicTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	MagicTexture() : Texture(0) { }
 
 	float turbulence() {
@@ -3873,8 +3904,9 @@ public:
 };
 
 class BlendTexture : public Texture {
-public:
+protected:
 	BlendTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	BlendTexture() : Texture(0) { }
 
 	enum prop_blend_progression_enum {
@@ -3932,8 +3964,9 @@ public:
 };
 
 class StucciTexture : public Texture {
-public:
+protected:
 	StucciTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	StucciTexture() : Texture(0) { }
 
 	float turbulence() {
@@ -4035,14 +4068,16 @@ public:
 };
 
 class NoiseTexture : public Texture {
-public:
+protected:
 	NoiseTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	NoiseTexture() : Texture(0) { }
 };
 
 class ImageTexture : public Texture {
-public:
+protected:
 	ImageTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	ImageTexture() : Texture(0) { }
 
 	bool use_interpolation() {
@@ -4296,8 +4331,9 @@ public:
 };
 
 class EnvironmentMapTexture : public Texture {
-public:
+protected:
 	EnvironmentMapTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	EnvironmentMapTexture() : Texture(0) { }
 
 	Image image();
@@ -4382,8 +4418,9 @@ public:
 };
 
 class MusgraveTexture : public Texture {
-public:
+protected:
 	MusgraveTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	MusgraveTexture() : Texture(0) { }
 
 	enum prop_musgrave_type_enum {
@@ -4511,8 +4548,9 @@ public:
 };
 
 class VoronoiTexture : public Texture {
-public:
+protected:
 	VoronoiTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	VoronoiTexture() : Texture(0) { }
 
 	float weight_1() {
@@ -4636,8 +4674,9 @@ public:
 };
 
 class DistortedNoiseTexture : public Texture {
-public:
+protected:
 	DistortedNoiseTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	DistortedNoiseTexture() : Texture(0) { }
 
 	float distortion() {
@@ -4706,8 +4745,9 @@ public:
 };
 
 class PointDensity : public pyObjRef {
-public:
+protected:
 	PointDensity(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PointDensity() : pyObjRef(0) { }
 
 	enum point_source_items_enum {
@@ -4979,8 +5019,9 @@ public:
 };
 
 class PointDensityTexture : public Texture {
-public:
+protected:
 	PointDensityTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	PointDensityTexture() : Texture(0) { }
 
 	PointDensity point_density() {
@@ -4989,8 +5030,9 @@ public:
 };
 
 class VoxelData : public pyObjRef {
-public:
+protected:
 	VoxelData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VoxelData() : pyObjRef(0) { }
 
 	enum interpolation_type_items_enum {
@@ -5168,8 +5210,9 @@ public:
 };
 
 class VoxelDataTexture : public Texture {
-public:
+protected:
 	VoxelDataTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	VoxelDataTexture() : Texture(0) { }
 
 	VoxelData voxel_data() {
@@ -5182,8 +5225,9 @@ public:
 };
 
 class OceanTexData : public pyObjRef {
-public:
+protected:
 	OceanTexData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	OceanTexData() : pyObjRef(0) { }
 
 	enum ocean_output_items_enum {
@@ -5217,8 +5261,9 @@ public:
 };
 
 class OceanTexture : public Texture {
-public:
+protected:
 	OceanTexture(PyObject* pyobj) : Texture(pyobj) {}
+public:
 	OceanTexture() : Texture(0) { }
 
 	OceanTexData ocean() {
@@ -5227,8 +5272,9 @@ public:
 };
 
 class TextureSlot : public pyObjRef {
-public:
+protected:
 	TextureSlot(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TextureSlot() : pyObjRef(0) { }
 
 	Texture texture() {
@@ -5362,8 +5408,9 @@ public:
 };
 
 class EnvironmentMap : public pyObjRef {
-public:
+protected:
 	EnvironmentMap(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	EnvironmentMap() : pyObjRef(0) { }
 
 	enum prop_source_items_enum {
@@ -5481,8 +5528,9 @@ public:
 };
 
 class TexMapping : public pyObjRef {
-public:
+protected:
 	TexMapping(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TexMapping() : pyObjRef(0) { }
 
 	enum prop_vect_type_items_enum {
@@ -5637,8 +5685,9 @@ public:
 };
 
 class ColorMapping : public pyObjRef {
-public:
+protected:
 	ColorMapping(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorMapping() : pyObjRef(0) { }
 
 	bool use_color_ramp() {
@@ -5731,8 +5780,9 @@ public:
 };
 
 class IDMaterials : public pyObjRef {
-public:
+protected:
 	IDMaterials(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	IDMaterials() : pyObjRef(0) { }
 
 	void append(Material material);
@@ -5745,8 +5795,9 @@ public:
 };
 
 class ActionFCurves : public pyObjRef {
-public:
+protected:
 	ActionFCurves(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ActionFCurves() : pyObjRef(0) { }
 
 	FCurve create(const std::string data_path, int index = 0, const std::string action_group = NULL);
@@ -5755,8 +5806,9 @@ public:
 };
 
 class ActionGroups : public pyObjRef {
-public:
+protected:
 	ActionGroups(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ActionGroups() : pyObjRef(0) { }
 
 	ActionGroup create(const std::string name);
@@ -5765,8 +5817,9 @@ public:
 };
 
 class ActionPoseMarkers : public pyObjRef {
-public:
+protected:
 	ActionPoseMarkers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ActionPoseMarkers() : pyObjRef(0) { }
 
 	TimelineMarker active();
@@ -5785,8 +5838,9 @@ public:
 };
 
 class NlaTracks : public pyObjRef {
-public:
+protected:
 	NlaTracks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NlaTracks() : pyObjRef(0) { }
 
 	NlaTrack active();
@@ -5797,16 +5851,18 @@ public:
 };
 
 class AnimDataDrivers : public pyObjRef {
-public:
+protected:
 	AnimDataDrivers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AnimDataDrivers() : pyObjRef(0) { }
 
 	FCurve from_existing(FCurve src_driver);
 };
 
 class KeyingSetPaths : public pyObjRef {
-public:
+protected:
 	KeyingSetPaths(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyingSetPaths() : pyObjRef(0) { }
 
 	KeyingSetPath active();
@@ -5846,16 +5902,18 @@ public:
 };
 
 class ArmatureBones : public pyObjRef {
-public:
+protected:
 	ArmatureBones(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ArmatureBones() : pyObjRef(0) { }
 
 	Bone active();
 };
 
 class ArmatureEditBones : public pyObjRef {
-public:
+protected:
 	ArmatureEditBones(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ArmatureEditBones() : pyObjRef(0) { }
 
 	EditBone active();
@@ -5866,8 +5924,9 @@ public:
 };
 
 class CurveMapPoints : public pyObjRef {
-public:
+protected:
 	CurveMapPoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CurveMapPoints() : pyObjRef(0) { }
 
 	CurveMapPoint create(float position, float value);
@@ -5876,8 +5935,9 @@ public:
 };
 
 class ColorRampElements : public pyObjRef {
-public:
+protected:
 	ColorRampElements(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorRampElements() : pyObjRef(0) { }
 
 	ColorRampElement create(float position);
@@ -5886,8 +5946,9 @@ public:
 };
 
 class CurveSplines : public pyObjRef {
-public:
+protected:
 	CurveSplines(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CurveSplines() : pyObjRef(0) { }
 
 	Spline active();
@@ -5921,8 +5982,9 @@ public:
 };
 
 class SplinePoints : public pyObjRef {
-public:
+protected:
 	SplinePoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SplinePoints() : pyObjRef(0) { }
 
 	void add(int count = 1) {
@@ -5931,8 +5993,9 @@ public:
 };
 
 class SplineBezierPoints : public pyObjRef {
-public:
+protected:
 	SplineBezierPoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SplineBezierPoints() : pyObjRef(0) { }
 
 	void add(int count = 1) {
@@ -5941,8 +6004,9 @@ public:
 };
 
 class DynamicPaintSurfaces : public pyObjRef {
-public:
+protected:
 	DynamicPaintSurfaces(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DynamicPaintSurfaces() : pyObjRef(0) { }
 
 	int active_index() {
@@ -5957,8 +6021,9 @@ public:
 };
 
 class FCurveKeyframePoints : public pyObjRef {
-public:
+protected:
 	FCurveKeyframePoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FCurveKeyframePoints() : pyObjRef(0) { }
 
 	enum items_enum {
@@ -5988,8 +6053,9 @@ public:
 };
 
 class FCurveModifiers : public pyObjRef {
-public:
+protected:
 	FCurveModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FCurveModifiers() : pyObjRef(0) { }
 
 	FModifier active();
@@ -6023,8 +6089,9 @@ public:
 };
 
 class ChannelDriverVariables : public pyObjRef {
-public:
+protected:
 	ChannelDriverVariables(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ChannelDriverVariables() : pyObjRef(0) { }
 
 	DriverVariable create();
@@ -6033,8 +6100,9 @@ public:
 };
 
 class FModifierEnvelopeControlPoints : public pyObjRef {
-public:
+protected:
 	FModifierEnvelopeControlPoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FModifierEnvelopeControlPoints() : pyObjRef(0) { }
 
 	FModifierEnvelopeControlPoint add(float frame);
@@ -6043,8 +6111,9 @@ public:
 };
 
 class GreasePencilLayers : public pyObjRef {
-public:
+protected:
 	GreasePencilLayers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GreasePencilLayers() : pyObjRef(0) { }
 
 	GPencilLayer active();
@@ -6063,8 +6132,9 @@ public:
 };
 
 class GPencilFrames : public pyObjRef {
-public:
+protected:
 	GPencilFrames(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilFrames() : pyObjRef(0) { }
 
 	GPencilFrame create(int frame_number);
@@ -6075,8 +6145,9 @@ public:
 };
 
 class GPencilStrokes : public pyObjRef {
-public:
+protected:
 	GPencilStrokes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilStrokes() : pyObjRef(0) { }
 
 	GPencilStroke create();
@@ -6085,8 +6156,9 @@ public:
 };
 
 class GPencilStrokePoints : public pyObjRef {
-public:
+protected:
 	GPencilStrokePoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilStrokePoints() : pyObjRef(0) { }
 
 	void add(int count = 1) {
@@ -6099,8 +6171,9 @@ public:
 };
 
 class GroupObjects : public pyObjRef {
-public:
+protected:
 	GroupObjects(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GroupObjects() : pyObjRef(0) { }
 
 	void link(Object object_value);
@@ -6109,8 +6182,9 @@ public:
 };
 
 class RenderSlots : public pyObjRef {
-public:
+protected:
 	RenderSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderSlots() : pyObjRef(0) { }
 
 	RenderSlot active();
@@ -6125,8 +6199,9 @@ public:
 };
 
 class LampTextureSlots : public pyObjRef {
-public:
+protected:
 	LampTextureSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LampTextureSlots() : pyObjRef(0) { }
 
 	LampTextureSlot add();
@@ -6139,8 +6214,9 @@ public:
 };
 
 class LineStyleTextureSlots : public pyObjRef {
-public:
+protected:
 	LineStyleTextureSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LineStyleTextureSlots() : pyObjRef(0) { }
 
 	LineStyleTextureSlot add();
@@ -6153,8 +6229,9 @@ public:
 };
 
 class LineStyleColorModifiers : public pyObjRef {
-public:
+protected:
 	LineStyleColorModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LineStyleColorModifiers() : pyObjRef(0) { }
 
 	enum linestyle_color_modifier_type_items_enum {
@@ -6185,8 +6262,9 @@ public:
 };
 
 class LineStyleAlphaModifiers : public pyObjRef {
-public:
+protected:
 	LineStyleAlphaModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LineStyleAlphaModifiers() : pyObjRef(0) { }
 
 	enum linestyle_alpha_modifier_type_items_enum {
@@ -6217,8 +6295,9 @@ public:
 };
 
 class LineStyleThicknessModifiers : public pyObjRef {
-public:
+protected:
 	LineStyleThicknessModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LineStyleThicknessModifiers() : pyObjRef(0) { }
 
 	enum linestyle_thickness_modifier_type_items_enum {
@@ -6250,8 +6329,9 @@ public:
 };
 
 class LineStyleGeometryModifiers : public pyObjRef {
-public:
+protected:
 	LineStyleGeometryModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LineStyleGeometryModifiers() : pyObjRef(0) { }
 
 	enum linestyle_geometry_modifier_type_items_enum {
@@ -6288,8 +6368,9 @@ public:
 };
 
 class BlendDataCameras : public pyObjRef {
-public:
+protected:
 	BlendDataCameras(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataCameras() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6310,8 +6391,9 @@ public:
 };
 
 class BlendDataScenes : public pyObjRef {
-public:
+protected:
 	BlendDataScenes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataScenes() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6332,8 +6414,9 @@ public:
 };
 
 class BlendDataObjects : public pyObjRef {
-public:
+protected:
 	BlendDataObjects(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataObjects() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6354,8 +6437,9 @@ public:
 };
 
 class BlendDataMaterials : public pyObjRef {
-public:
+protected:
 	BlendDataMaterials(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataMaterials() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6376,8 +6460,9 @@ public:
 };
 
 class BlendDataNodeTrees : public pyObjRef {
-public:
+protected:
 	BlendDataNodeTrees(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataNodeTrees() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6413,8 +6498,9 @@ public:
 };
 
 class BlendDataMeshes : public pyObjRef {
-public:
+protected:
 	BlendDataMeshes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataMeshes() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6453,8 +6539,9 @@ public:
 };
 
 class BlendDataLamps : public pyObjRef {
-public:
+protected:
 	BlendDataLamps(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataLamps() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6494,8 +6581,9 @@ public:
 };
 
 class BlendDataLibraries : public pyObjRef {
-public:
+protected:
 	BlendDataLibraries(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataLibraries() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6512,8 +6600,9 @@ public:
 };
 
 class BlendDataScreens : public pyObjRef {
-public:
+protected:
 	BlendDataScreens(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataScreens() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6530,8 +6619,9 @@ public:
 };
 
 class BlendDataWindowManagers : public pyObjRef {
-public:
+protected:
 	BlendDataWindowManagers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataWindowManagers() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6548,8 +6638,9 @@ public:
 };
 
 class BlendDataImages : public pyObjRef {
-public:
+protected:
 	BlendDataImages(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataImages() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6572,8 +6663,9 @@ public:
 };
 
 class BlendDataLattices : public pyObjRef {
-public:
+protected:
 	BlendDataLattices(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataLattices() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6594,8 +6686,9 @@ public:
 };
 
 class BlendDataCurves : public pyObjRef {
-public:
+protected:
 	BlendDataCurves(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataCurves() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6633,8 +6726,9 @@ public:
 };
 
 class BlendDataMetaBalls : public pyObjRef {
-public:
+protected:
 	BlendDataMetaBalls(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataMetaBalls() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6655,8 +6749,9 @@ public:
 };
 
 class BlendDataFonts : public pyObjRef {
-public:
+protected:
 	BlendDataFonts(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataFonts() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6677,8 +6772,9 @@ public:
 };
 
 class BlendDataTextures : public pyObjRef {
-public:
+protected:
 	BlendDataTextures(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataTextures() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6734,8 +6830,9 @@ public:
 };
 
 class BlendDataBrushes : public pyObjRef {
-public:
+protected:
 	BlendDataBrushes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataBrushes() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6756,8 +6853,9 @@ public:
 };
 
 class BlendDataWorlds : public pyObjRef {
-public:
+protected:
 	BlendDataWorlds(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataWorlds() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6778,8 +6876,9 @@ public:
 };
 
 class BlendDataGroups : public pyObjRef {
-public:
+protected:
 	BlendDataGroups(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataGroups() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6800,8 +6899,9 @@ public:
 };
 
 class BlendDataTexts : public pyObjRef {
-public:
+protected:
 	BlendDataTexts(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataTexts() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6824,8 +6924,9 @@ public:
 };
 
 class BlendDataSpeakers : public pyObjRef {
-public:
+protected:
 	BlendDataSpeakers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataSpeakers() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6846,8 +6947,9 @@ public:
 };
 
 class BlendDataSounds : public pyObjRef {
-public:
+protected:
 	BlendDataSounds(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataSounds() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6868,8 +6970,9 @@ public:
 };
 
 class BlendDataArmatures : public pyObjRef {
-public:
+protected:
 	BlendDataArmatures(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataArmatures() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6890,8 +6993,9 @@ public:
 };
 
 class BlendDataActions : public pyObjRef {
-public:
+protected:
 	BlendDataActions(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataActions() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6912,8 +7016,9 @@ public:
 };
 
 class BlendDataParticles : public pyObjRef {
-public:
+protected:
 	BlendDataParticles(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataParticles() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6934,8 +7039,9 @@ public:
 };
 
 class BlendDataPalettes : public pyObjRef {
-public:
+protected:
 	BlendDataPalettes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataPalettes() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6956,8 +7062,9 @@ public:
 };
 
 class BlendDataGreasePencils : public pyObjRef {
-public:
+protected:
 	BlendDataGreasePencils(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataGreasePencils() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -6978,8 +7085,9 @@ public:
 };
 
 class BlendDataMovieClips : public pyObjRef {
-public:
+protected:
 	BlendDataMovieClips(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataMovieClips() : pyObjRef(0) { }
 
 	void tag(bool value) {
@@ -6992,8 +7100,9 @@ public:
 };
 
 class BlendDataMasks : public pyObjRef {
-public:
+protected:
 	BlendDataMasks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataMasks() : pyObjRef(0) { }
 
 	void tag(bool value) {
@@ -7006,8 +7115,9 @@ public:
 };
 
 class BlendDataLineStyles : public pyObjRef {
-public:
+protected:
 	BlendDataLineStyles(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendDataLineStyles() : pyObjRef(0) { }
 
 	bool is_updated() {
@@ -7028,8 +7138,9 @@ public:
 };
 
 class MaterialTextureSlots : public pyObjRef {
-public:
+protected:
 	MaterialTextureSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialTextureSlots() : pyObjRef(0) { }
 
 	MaterialTextureSlot add();
@@ -7042,8 +7153,9 @@ public:
 };
 
 class MeshVertices : public pyObjRef {
-public:
+protected:
 	MeshVertices(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertices() : pyObjRef(0) { }
 
 	void add(int count = 0) {
@@ -7052,8 +7164,9 @@ public:
 };
 
 class MeshEdges : public pyObjRef {
-public:
+protected:
 	MeshEdges(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshEdges() : pyObjRef(0) { }
 
 	void add(int count = 0) {
@@ -7062,8 +7175,9 @@ public:
 };
 
 class MeshTessFaces : public pyObjRef {
-public:
+protected:
 	MeshTessFaces(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshTessFaces() : pyObjRef(0) { }
 
 	int active() {
@@ -7080,8 +7194,9 @@ public:
 };
 
 class MeshLoops : public pyObjRef {
-public:
+protected:
 	MeshLoops(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshLoops() : pyObjRef(0) { }
 
 	void add(int count = 0) {
@@ -7090,8 +7205,9 @@ public:
 };
 
 class MeshPolygons : public pyObjRef {
-public:
+protected:
 	MeshPolygons(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygons() : pyObjRef(0) { }
 
 	int active() {
@@ -7108,8 +7224,9 @@ public:
 };
 
 class UVLoopLayers : public pyObjRef {
-public:
+protected:
 	UVLoopLayers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UVLoopLayers() : pyObjRef(0) { }
 
 	MeshUVLoopLayer active();
@@ -7124,8 +7241,9 @@ public:
 };
 
 class TessfaceUVTextures : public pyObjRef {
-public:
+protected:
 	TessfaceUVTextures(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TessfaceUVTextures() : pyObjRef(0) { }
 
 	MeshTextureFaceLayer active();
@@ -7142,8 +7260,9 @@ public:
 };
 
 class UVTextures : public pyObjRef {
-public:
+protected:
 	UVTextures(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UVTextures() : pyObjRef(0) { }
 
 	MeshTexturePolyLayer active();
@@ -7162,8 +7281,9 @@ public:
 };
 
 class VertexColors : public pyObjRef {
-public:
+protected:
 	VertexColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexColors() : pyObjRef(0) { }
 
 	MeshColorLayer active();
@@ -7180,8 +7300,9 @@ public:
 };
 
 class LoopColors : public pyObjRef {
-public:
+protected:
 	LoopColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LoopColors() : pyObjRef(0) { }
 
 	MeshLoopColorLayer active();
@@ -7200,56 +7321,63 @@ public:
 };
 
 class VertexFloatProperties : public pyObjRef {
-public:
+protected:
 	VertexFloatProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexFloatProperties() : pyObjRef(0) { }
 
 	MeshVertexFloatPropertyLayer create(const std::string name = "Float Prop");
 };
 
 class VertexIntProperties : public pyObjRef {
-public:
+protected:
 	VertexIntProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexIntProperties() : pyObjRef(0) { }
 
 	MeshVertexIntPropertyLayer create(const std::string name = "Int Prop");
 };
 
 class VertexStringProperties : public pyObjRef {
-public:
+protected:
 	VertexStringProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexStringProperties() : pyObjRef(0) { }
 
 	MeshVertexStringPropertyLayer create(const std::string name = "String Prop");
 };
 
 class PolygonFloatProperties : public pyObjRef {
-public:
+protected:
 	PolygonFloatProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PolygonFloatProperties() : pyObjRef(0) { }
 
 	MeshPolygonFloatPropertyLayer create(const std::string name = "Float Prop");
 };
 
 class PolygonIntProperties : public pyObjRef {
-public:
+protected:
 	PolygonIntProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PolygonIntProperties() : pyObjRef(0) { }
 
 	MeshPolygonIntPropertyLayer create(const std::string name = "Int Prop");
 };
 
 class PolygonStringProperties : public pyObjRef {
-public:
+protected:
 	PolygonStringProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PolygonStringProperties() : pyObjRef(0) { }
 
 	MeshPolygonStringPropertyLayer create(const std::string name = "String Prop");
 };
 
 class MetaBallElements : public pyObjRef {
-public:
+protected:
 	MetaBallElements(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MetaBallElements() : pyObjRef(0) { }
 
 	MetaElement active();
@@ -7283,8 +7411,9 @@ public:
 };
 
 class NlaStrips : public pyObjRef {
-public:
+protected:
 	NlaStrips(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NlaStrips() : pyObjRef(0) { }
 
 	NlaStrip create(const std::string name, int start, Action action);
@@ -7293,8 +7422,9 @@ public:
 };
 
 class NodeInputs : public pyObjRef {
-public:
+protected:
 	NodeInputs(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeInputs() : pyObjRef(0) { }
 
 	NodeSocket create(const std::string type, const std::string name, const std::string identifier = NULL);
@@ -7311,8 +7441,9 @@ public:
 };
 
 class NodeOutputs : public pyObjRef {
-public:
+protected:
 	NodeOutputs(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeOutputs() : pyObjRef(0) { }
 
 	NodeSocket create(const std::string type, const std::string name, const std::string identifier = NULL);
@@ -7329,8 +7460,9 @@ public:
 };
 
 class Nodes : public pyObjRef {
-public:
+protected:
 	Nodes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Nodes() : pyObjRef(0) { }
 
 	Node active();
@@ -7345,8 +7477,9 @@ public:
 };
 
 class NodeLinks : public pyObjRef {
-public:
+protected:
 	NodeLinks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeLinks() : pyObjRef(0) { }
 
 	NodeLink create(NodeSocket input, NodeSocket output, bool verify_limits = true);
@@ -7359,8 +7492,9 @@ public:
 };
 
 class NodeTreeInputs : public pyObjRef {
-public:
+protected:
 	NodeTreeInputs(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeTreeInputs() : pyObjRef(0) { }
 
 	NodeSocketInterface create(const std::string type, const std::string name);
@@ -7377,8 +7511,9 @@ public:
 };
 
 class NodeTreeOutputs : public pyObjRef {
-public:
+protected:
 	NodeTreeOutputs(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeTreeOutputs() : pyObjRef(0) { }
 
 	NodeSocketInterface create(const std::string type, const std::string name);
@@ -7395,8 +7530,9 @@ public:
 };
 
 class CompositorNodeOutputFileFileSlots : public pyObjRef {
-public:
+protected:
 	CompositorNodeOutputFileFileSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CompositorNodeOutputFileFileSlots() : pyObjRef(0) { }
 
 	NodeSocket create(const std::string name);
@@ -7413,8 +7549,9 @@ public:
 };
 
 class CompositorNodeOutputFileLayerSlots : public pyObjRef {
-public:
+protected:
 	CompositorNodeOutputFileLayerSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CompositorNodeOutputFileLayerSlots() : pyObjRef(0) { }
 
 	NodeSocket create(const std::string name);
@@ -7431,8 +7568,9 @@ public:
 };
 
 class ObjectModifiers : public pyObjRef {
-public:
+protected:
 	ObjectModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ObjectModifiers() : pyObjRef(0) { }
 
 	enum modifier_type_items_enum {
@@ -7509,8 +7647,9 @@ public:
 };
 
 class ObjectConstraints : public pyObjRef {
-public:
+protected:
 	ObjectConstraints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ObjectConstraints() : pyObjRef(0) { }
 
 	Constraint active();
@@ -7566,8 +7705,9 @@ public:
 };
 
 class VertexGroups : public pyObjRef {
-public:
+protected:
 	VertexGroups(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexGroups() : pyObjRef(0) { }
 
 	VertexGroup active();
@@ -7590,8 +7730,9 @@ public:
 };
 
 class ParticleSystems : public pyObjRef {
-public:
+protected:
 	ParticleSystems(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleSystems() : pyObjRef(0) { }
 
 	ParticleSystem active();
@@ -7606,8 +7747,9 @@ public:
 };
 
 class PointCaches : public pyObjRef {
-public:
+protected:
 	PointCaches(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PointCaches() : pyObjRef(0) { }
 
 	int active_index() {
@@ -7620,8 +7762,9 @@ public:
 };
 
 class PaletteColors : public pyObjRef {
-public:
+protected:
 	PaletteColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PaletteColors() : pyObjRef(0) { }
 
 	PaletteColor active();
@@ -7636,8 +7779,9 @@ public:
 };
 
 class ParticleSettingsTextureSlots : public pyObjRef {
-public:
+protected:
 	ParticleSettingsTextureSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleSettingsTextureSlots() : pyObjRef(0) { }
 
 	ParticleSettingsTextureSlot add();
@@ -7650,8 +7794,9 @@ public:
 };
 
 class BoneGroups : public pyObjRef {
-public:
+protected:
 	BoneGroups(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BoneGroups() : pyObjRef(0) { }
 
 	BoneGroup active();
@@ -7670,8 +7815,9 @@ public:
 };
 
 class PoseBoneConstraints : public pyObjRef {
-public:
+protected:
 	PoseBoneConstraints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PoseBoneConstraints() : pyObjRef(0) { }
 
 	Constraint active();
@@ -7723,8 +7869,9 @@ public:
 };
 
 class RenderPasses : public pyObjRef {
-public:
+protected:
 	RenderPasses(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderPasses() : pyObjRef(0) { }
 
 	enum render_pass_type_items_enum {
@@ -7774,16 +7921,18 @@ public:
 };
 
 class SceneBases : public pyObjRef {
-public:
+protected:
 	SceneBases(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SceneBases() : pyObjRef(0) { }
 
 	ObjectBase active();
 };
 
 class SceneObjects : public pyObjRef {
-public:
+protected:
 	SceneObjects(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SceneObjects() : pyObjRef(0) { }
 
 	Object active();
@@ -7794,8 +7943,9 @@ public:
 };
 
 class KeyingSets : public pyObjRef {
-public:
+protected:
 	KeyingSets(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyingSets() : pyObjRef(0) { }
 
 	KeyingSet active();
@@ -7812,8 +7962,9 @@ public:
 };
 
 class KeyingSetsAll : public pyObjRef {
-public:
+protected:
 	KeyingSetsAll(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyingSetsAll() : pyObjRef(0) { }
 
 	KeyingSet active();
@@ -7828,8 +7979,9 @@ public:
 };
 
 class TimelineMarkers : public pyObjRef {
-public:
+protected:
 	TimelineMarkers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TimelineMarkers() : pyObjRef(0) { }
 
 	TimelineMarker create(const std::string name, int frame = 1);
@@ -7842,8 +7994,9 @@ public:
 };
 
 class RenderLayers : public pyObjRef {
-public:
+protected:
 	RenderLayers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderLayers() : pyObjRef(0) { }
 
 	int active_index() {
@@ -7862,8 +8015,9 @@ public:
 };
 
 class RenderViews : public pyObjRef {
-public:
+protected:
 	RenderViews(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderViews() : pyObjRef(0) { }
 
 	int active_index() {
@@ -7882,8 +8036,9 @@ public:
 };
 
 class FreestyleModules : public pyObjRef {
-public:
+protected:
 	FreestyleModules(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FreestyleModules() : pyObjRef(0) { }
 
 	FreestyleModuleSettings create();
@@ -7892,8 +8047,9 @@ public:
 };
 
 class Linesets : public pyObjRef {
-public:
+protected:
 	Linesets(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Linesets() : pyObjRef(0) { }
 
 	FreestyleLineSet active();
@@ -7912,16 +8068,18 @@ public:
 };
 
 class AreaSpaces : public pyObjRef {
-public:
+protected:
 	AreaSpaces(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AreaSpaces() : pyObjRef(0) { }
 
 	Space active();
 };
 
 class SequenceModifiers : public pyObjRef {
-public:
+protected:
 	SequenceModifiers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceModifiers() : pyObjRef(0) { }
 
 	enum sequence_modifier_type_items_enum {
@@ -7953,8 +8111,9 @@ public:
 };
 
 class Sequences : public pyObjRef {
-public:
+protected:
 	Sequences(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Sequences() : pyObjRef(0) { }
 
 	Sequence new_clip(const std::string name, MovieClip clip, int channel, int frame_start);
@@ -8006,8 +8165,9 @@ public:
 };
 
 class SequenceElements : public pyObjRef {
-public:
+protected:
 	SequenceElements(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceElements() : pyObjRef(0) { }
 
 	SequenceElement append(const std::string filename);
@@ -8018,8 +8178,9 @@ public:
 };
 
 class BackgroundImages : public pyObjRef {
-public:
+protected:
 	BackgroundImages(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BackgroundImages() : pyObjRef(0) { }
 
 	BackgroundImage create();
@@ -8032,8 +8193,9 @@ public:
 };
 
 class SpaceNodeEditorPath : public pyObjRef {
-public:
+protected:
 	SpaceNodeEditorPath(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SpaceNodeEditorPath() : pyObjRef(0) { }
 
 	std::string to_string() {
@@ -8058,8 +8220,9 @@ public:
 };
 
 class Addons : public pyObjRef {
-public:
+protected:
 	Addons(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Addons() : pyObjRef(0) { }
 
 	Addon create();
@@ -8068,8 +8231,9 @@ public:
 };
 
 class PathCompareCollection : public pyObjRef {
-public:
+protected:
 	PathCompareCollection(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PathCompareCollection() : pyObjRef(0) { }
 
 	PathCompare create();
@@ -8078,8 +8242,9 @@ public:
 };
 
 class KeyConfigurations : public pyObjRef {
-public:
+protected:
 	KeyConfigurations(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyConfigurations() : pyObjRef(0) { }
 
 	KeyConfig active();
@@ -8096,8 +8261,9 @@ public:
 };
 
 class KeyMaps : public pyObjRef {
-public:
+protected:
 	KeyMaps(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyMaps() : pyObjRef(0) { }
 
 	enum space_type_items_enum {
@@ -8164,8 +8330,9 @@ public:
 };
 
 class KeyMapItems : public pyObjRef {
-public:
+protected:
 	KeyMapItems(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyMapItems() : pyObjRef(0) { }
 
 	enum event_type_items_enum {
@@ -8404,8 +8571,9 @@ public:
 };
 
 class WorldTextureSlots : public pyObjRef {
-public:
+protected:
 	WorldTextureSlots(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	WorldTextureSlots() : pyObjRef(0) { }
 
 	WorldTextureSlot add();
@@ -8418,8 +8586,9 @@ public:
 };
 
 class MovieTrackingMarkers : public pyObjRef {
-public:
+protected:
 	MovieTrackingMarkers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingMarkers() : pyObjRef(0) { }
 
 	MovieTrackingMarker find_frame(int frame, bool exact = true);
@@ -8432,8 +8601,9 @@ public:
 };
 
 class MovieTrackingPlaneMarkers : public pyObjRef {
-public:
+protected:
 	MovieTrackingPlaneMarkers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingPlaneMarkers() : pyObjRef(0) { }
 
 	MovieTrackingPlaneMarker find_frame(int frame, bool exact = true);
@@ -8446,8 +8616,9 @@ public:
 };
 
 class MovieTrackingTracks : public pyObjRef {
-public:
+protected:
 	MovieTrackingTracks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingTracks() : pyObjRef(0) { }
 
 	MovieTrackingTrack active();
@@ -8456,16 +8627,18 @@ public:
 };
 
 class MovieTrackingPlaneTracks : public pyObjRef {
-public:
+protected:
 	MovieTrackingPlaneTracks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingPlaneTracks() : pyObjRef(0) { }
 
 	MovieTrackingPlaneTrack active();
 };
 
 class MovieTrackingObjectTracks : public pyObjRef {
-public:
+protected:
 	MovieTrackingObjectTracks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingObjectTracks() : pyObjRef(0) { }
 
 	MovieTrackingTrack active();
@@ -8474,16 +8647,18 @@ public:
 };
 
 class MovieTrackingObjectPlaneTracks : public pyObjRef {
-public:
+protected:
 	MovieTrackingObjectPlaneTracks(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingObjectPlaneTracks() : pyObjRef(0) { }
 
 	MovieTrackingTrack active();
 };
 
 class MovieTrackingReconstructedCameras : public pyObjRef {
-public:
+protected:
 	MovieTrackingReconstructedCameras(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingReconstructedCameras() : pyObjRef(0) { }
 
 	MovieReconstructedCamera find_frame(int frame = 1);
@@ -8497,8 +8672,9 @@ public:
 };
 
 class MovieTrackingObjects : public pyObjRef {
-public:
+protected:
 	MovieTrackingObjects(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingObjects() : pyObjRef(0) { }
 
 	MovieTrackingObject active();
@@ -8509,8 +8685,9 @@ public:
 };
 
 class MaskSplines : public pyObjRef {
-public:
+protected:
 	MaskSplines(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskSplines() : pyObjRef(0) { }
 
 	MaskSpline active();
@@ -8523,8 +8700,9 @@ public:
 };
 
 class MaskSplinePoints : public pyObjRef {
-public:
+protected:
 	MaskSplinePoints(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskSplinePoints() : pyObjRef(0) { }
 
 	void add(int count = 1) {
@@ -8535,8 +8713,9 @@ public:
 };
 
 class MaskLayers : public pyObjRef {
-public:
+protected:
 	MaskLayers(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskLayers() : pyObjRef(0) { }
 
 	MaskLayer active();
@@ -8551,8 +8730,9 @@ public:
 };
 
 class Action : public ID {
-public:
+protected:
 	Action(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Action() : ID(0) { }
 
 	std::map<std::string, FCurve> fcurves();
@@ -8625,8 +8805,9 @@ public:
 };
 
 class ActionGroup : public pyObjRef {
-public:
+protected:
 	ActionGroup(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ActionGroup() : pyObjRef(0) { }
 
 	std::string name() {
@@ -8719,8 +8900,9 @@ public:
 };
 
 class DopeSheet : public pyObjRef {
-public:
+protected:
 	DopeSheet(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DopeSheet() : pyObjRef(0) { }
 
 	ID source() {
@@ -8979,8 +9161,9 @@ public:
 };
 
 class AnimData : public pyObjRef {
-public:
+protected:
 	AnimData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AnimData() : pyObjRef(0) { }
 
 	std::map<std::string, NlaTrack> nla_tracks();
@@ -9060,8 +9243,9 @@ public:
 };
 
 class KeyingSet : public pyObjRef {
-public:
+protected:
 	KeyingSet(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyingSet() : pyObjRef(0) { }
 
 	std::string bl_idname() {
@@ -9154,8 +9338,9 @@ public:
 };
 
 class KeyingSetPath : public pyObjRef {
-public:
+protected:
 	KeyingSetPath(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyingSetPath() : pyObjRef(0) { }
 
 	ID id() {
@@ -9323,8 +9508,9 @@ public:
 };
 
 class KeyingSetInfo : public pyObjRef {
-public:
+protected:
 	KeyingSetInfo(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyingSetInfo() : pyObjRef(0) { }
 
 	std::string bl_idname() {
@@ -9379,8 +9565,9 @@ public:
 };
 
 class AnimViz : public pyObjRef {
-public:
+protected:
 	AnimViz(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AnimViz() : pyObjRef(0) { }
 
 	AnimVizOnionSkinning onion_skin_frames();
@@ -9389,8 +9576,9 @@ public:
 };
 
 class AnimVizOnionSkinning : public pyObjRef {
-public:
+protected:
 	AnimVizOnionSkinning(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AnimVizOnionSkinning() : pyObjRef(0) { }
 
 	enum prop_type_items_enum {
@@ -9469,8 +9657,9 @@ public:
 };
 
 class AnimVizMotionPaths : public pyObjRef {
-public:
+protected:
 	AnimVizMotionPaths(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AnimVizMotionPaths() : pyObjRef(0) { }
 
 	enum prop_type_items_enum {
@@ -9595,8 +9784,9 @@ public:
 };
 
 class MotionPath : public pyObjRef {
-public:
+protected:
 	MotionPath(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MotionPath() : pyObjRef(0) { }
 
 	std::map<std::string, MotionPathVert> points();
@@ -9643,8 +9833,9 @@ public:
 };
 
 class MotionPathVert : public pyObjRef {
-public:
+protected:
 	MotionPathVert(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MotionPathVert() : pyObjRef(0) { }
 
 	VFLOAT3 co() {
@@ -9665,8 +9856,9 @@ public:
 };
 
 class Actuator : public pyObjRef {
-public:
+protected:
 	Actuator(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Actuator() : pyObjRef(0) { }
 
 	std::string name() {
@@ -9747,8 +9939,9 @@ public:
 };
 
 class ActionActuator : public Actuator {
-public:
+protected:
 	ActionActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	ActionActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -9913,8 +10106,9 @@ public:
 };
 
 class ObjectActuator : public Actuator {
-public:
+protected:
 	ObjectActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	ObjectActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -10170,8 +10364,9 @@ public:
 };
 
 class CameraActuator : public Actuator {
-public:
+protected:
 	CameraActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	CameraActuator() : Actuator(0) { }
 
 	Object object_value();
@@ -10236,8 +10431,9 @@ public:
 };
 
 class SoundActuator : public Actuator {
-public:
+protected:
 	SoundActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	SoundActuator() : Actuator(0) { }
 
 	Sound sound();
@@ -10360,8 +10556,9 @@ public:
 };
 
 class PropertyActuator : public Actuator {
-public:
+protected:
 	PropertyActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	PropertyActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -10419,8 +10616,9 @@ public:
 };
 
 class ConstraintActuator : public Actuator {
-public:
+protected:
 	ConstraintActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	ConstraintActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -10716,8 +10914,9 @@ public:
 };
 
 class EditObjectActuator : public Actuator {
-public:
+protected:
 	EditObjectActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	EditObjectActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -10907,8 +11106,9 @@ public:
 };
 
 class SceneActuator : public Actuator {
-public:
+protected:
 	SceneActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	SceneActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -10947,8 +11147,9 @@ public:
 };
 
 class RandomActuator : public Actuator {
-public:
+protected:
 	RandomActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	RandomActuator() : Actuator(0) { }
 
 	int seed() {
@@ -11097,8 +11298,9 @@ public:
 };
 
 class MessageActuator : public Actuator {
-public:
+protected:
 	MessageActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	MessageActuator() : Actuator(0) { }
 
 	std::string to_property() {
@@ -11159,8 +11361,9 @@ public:
 };
 
 class GameActuator : public Actuator {
-public:
+protected:
 	GameActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	GameActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11200,8 +11403,9 @@ public:
 };
 
 class VisibilityActuator : public Actuator {
-public:
+protected:
 	VisibilityActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	VisibilityActuator() : Actuator(0) { }
 
 	bool use_visible() {
@@ -11230,8 +11434,9 @@ public:
 };
 
 class Filter2DActuator : public Actuator {
-public:
+protected:
 	Filter2DActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	Filter2DActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11299,8 +11504,9 @@ public:
 };
 
 class ParentActuator : public Actuator {
-public:
+protected:
 	ParentActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	ParentActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11347,8 +11553,9 @@ public:
 };
 
 class StateActuator : public Actuator {
-public:
+protected:
 	StateActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	StateActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11387,8 +11594,9 @@ public:
 };
 
 class ArmatureActuator : public Actuator {
-public:
+protected:
 	ArmatureActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	ArmatureActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11457,8 +11665,9 @@ public:
 };
 
 class SteeringActuator : public Actuator {
-public:
+protected:
 	SteeringActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	SteeringActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11600,8 +11809,9 @@ public:
 };
 
 class MouseActuator : public Actuator {
-public:
+protected:
 	MouseActuator(PyObject* pyobj) : Actuator(pyobj) {}
+public:
 	MouseActuator() : Actuator(0) { }
 
 	enum prop_type_items_enum {
@@ -11783,8 +11993,9 @@ public:
 };
 
 class Armature : public ID {
-public:
+protected:
 	Armature(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Armature() : ID(0) { }
 
 	AnimData animation_data() {
@@ -12023,8 +12234,9 @@ public:
 };
 
 class Bone : public pyObjRef {
-public:
+protected:
 	Bone(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Bone() : pyObjRef(0) { }
 
 	Bone parent() {
@@ -12294,8 +12506,9 @@ public:
 };
 
 class EditBone : public pyObjRef {
-public:
+protected:
 	EditBone(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	EditBone() : pyObjRef(0) { }
 
 	EditBone parent() {
@@ -12550,8 +12763,9 @@ public:
 };
 
 class BoidRule : public pyObjRef {
-public:
+protected:
 	BoidRule(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BoidRule() : pyObjRef(0) { }
 
 	std::string name() {
@@ -12610,8 +12824,9 @@ public:
 };
 
 class BoidRuleGoal : public BoidRule {
-public:
+protected:
 	BoidRuleGoal(PyObject* pyobj) : BoidRule(pyobj) {}
+public:
 	BoidRuleGoal() : BoidRule(0) { }
 
 	Object object_value();
@@ -12626,8 +12841,9 @@ public:
 };
 
 class BoidRuleAvoid : public BoidRule {
-public:
+protected:
 	BoidRuleAvoid(PyObject* pyobj) : BoidRule(pyobj) {}
+public:
 	BoidRuleAvoid() : BoidRule(0) { }
 
 	Object object_value();
@@ -12650,8 +12866,9 @@ public:
 };
 
 class BoidRuleAvoidCollision : public BoidRule {
-public:
+protected:
 	BoidRuleAvoidCollision(PyObject* pyobj) : BoidRule(pyobj) {}
+public:
 	BoidRuleAvoidCollision() : BoidRule(0) { }
 
 	bool use_avoid() {
@@ -12680,8 +12897,9 @@ public:
 };
 
 class BoidRuleFollowLeader : public BoidRule {
-public:
+protected:
 	BoidRuleFollowLeader(PyObject* pyobj) : BoidRule(pyobj) {}
+public:
 	BoidRuleFollowLeader() : BoidRule(0) { }
 
 	Object object_value();
@@ -12712,8 +12930,9 @@ public:
 };
 
 class BoidRuleAverageSpeed : public BoidRule {
-public:
+protected:
 	BoidRuleAverageSpeed(PyObject* pyobj) : BoidRule(pyobj) {}
+public:
 	BoidRuleAverageSpeed() : BoidRule(0) { }
 
 	float wander() {
@@ -12742,8 +12961,9 @@ public:
 };
 
 class BoidRuleFight : public BoidRule {
-public:
+protected:
 	BoidRuleFight(PyObject* pyobj) : BoidRule(pyobj) {}
+public:
 	BoidRuleFight() : BoidRule(0) { }
 
 	float distance() {
@@ -12764,8 +12984,9 @@ public:
 };
 
 class BoidState : public pyObjRef {
-public:
+protected:
 	BoidState(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BoidState() : pyObjRef(0) { }
 
 	std::string name() {
@@ -12843,8 +13064,9 @@ public:
 };
 
 class BoidSettings : public pyObjRef {
-public:
+protected:
 	BoidSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BoidSettings() : pyObjRef(0) { }
 
 	float land_smooth() {
@@ -13049,8 +13271,9 @@ public:
 };
 
 class Brush : public ID {
-public:
+protected:
 	Brush(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Brush() : ID(0) { }
 
 	enum prop_blend_items_enum {
@@ -14003,8 +14226,9 @@ public:
 };
 
 class BrushCapabilities : public pyObjRef {
-public:
+protected:
 	BrushCapabilities(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BrushCapabilities() : pyObjRef(0) { }
 
 	bool has_overlay() {
@@ -14041,8 +14265,9 @@ public:
 };
 
 class SculptToolCapabilities : public pyObjRef {
-public:
+protected:
 	SculptToolCapabilities(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SculptToolCapabilities() : pyObjRef(0) { }
 
 	bool has_accumulate() {
@@ -14167,8 +14392,9 @@ public:
 };
 
 class ImapaintToolCapabilities : public pyObjRef {
-public:
+protected:
 	ImapaintToolCapabilities(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ImapaintToolCapabilities() : pyObjRef(0) { }
 
 	bool has_accumulate() {
@@ -14197,8 +14423,9 @@ public:
 };
 
 class BrushTextureSlot : public TextureSlot {
-public:
+protected:
 	BrushTextureSlot(PyObject* pyobj) : TextureSlot(pyobj) {}
+public:
 	BrushTextureSlot() : TextureSlot(0) { }
 
 	float angle() {
@@ -14340,8 +14567,9 @@ public:
 };
 
 class OperatorStrokeElement : public PropertyGroup {
-public:
+protected:
 	OperatorStrokeElement(PyObject* pyobj) : PropertyGroup(pyobj) {}
+public:
 	OperatorStrokeElement() : PropertyGroup(0) { }
 
 	VFLOAT3 location() {
@@ -14402,8 +14630,9 @@ public:
 };
 
 class Camera : public ID {
-public:
+protected:
 	Camera(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Camera() : ID(0) { }
 
 	enum prop_type_items_enum {
@@ -14699,8 +14928,9 @@ public:
 };
 
 class CameraStereoData : public pyObjRef {
-public:
+protected:
 	CameraStereoData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CameraStereoData() : pyObjRef(0) { }
 
 	enum convergence_mode_items_enum {
@@ -14771,8 +15001,9 @@ public:
 };
 
 class ClothSolverResult : public pyObjRef {
-public:
+protected:
 	ClothSolverResult(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ClothSolverResult() : pyObjRef(0) { }
 
 	enum status_items_enum {
@@ -14851,8 +15082,9 @@ public:
 };
 
 class ClothSettings : public pyObjRef {
-public:
+protected:
 	ClothSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ClothSettings() : pyObjRef(0) { }
 
 	float goal_min() {
@@ -15117,8 +15349,9 @@ public:
 };
 
 class ClothCollisionSettings : public pyObjRef {
-public:
+protected:
 	ClothCollisionSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ClothCollisionSettings() : pyObjRef(0) { }
 
 	bool use_collision() {
@@ -15221,8 +15454,9 @@ public:
 };
 
 class CurveMapPoint : public pyObjRef {
-public:
+protected:
 	CurveMapPoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CurveMapPoint() : pyObjRef(0) { }
 
 	VFLOAT2 location() {
@@ -15267,8 +15501,9 @@ public:
 };
 
 class CurveMap : public pyObjRef {
-public:
+protected:
 	CurveMap(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CurveMap() : pyObjRef(0) { }
 
 	enum prop_extend_items_enum {
@@ -15308,8 +15543,9 @@ public:
 };
 
 class CurveMapping : public pyObjRef {
-public:
+protected:
 	CurveMapping(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CurveMapping() : pyObjRef(0) { }
 
 	bool use_clip() {
@@ -15382,8 +15618,9 @@ public:
 };
 
 class ColorRampElement : public pyObjRef {
-public:
+protected:
 	ColorRampElement(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorRampElement() : pyObjRef(0) { }
 
 	VFLOAT4 color() {
@@ -15412,8 +15649,9 @@ public:
 };
 
 class ColorRamp : public pyObjRef {
-public:
+protected:
 	ColorRamp(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorRamp() : pyObjRef(0) { }
 
 	std::map<std::string, ColorRampElement> elements() {
@@ -15507,8 +15745,9 @@ public:
 };
 
 class Histogram : public pyObjRef {
-public:
+protected:
 	Histogram(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Histogram() : pyObjRef(0) { }
 
 	enum prop_mode_items_enum {
@@ -15549,8 +15788,9 @@ public:
 };
 
 class Scopes : public pyObjRef {
-public:
+protected:
 	Scopes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Scopes() : pyObjRef(0) { }
 
 	bool use_full_resolution() {
@@ -15618,8 +15858,9 @@ public:
 };
 
 class ColorManagedDisplaySettings : public pyObjRef {
-public:
+protected:
 	ColorManagedDisplaySettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorManagedDisplaySettings() : pyObjRef(0) { }
 
 	enum display_device_items_enum {
@@ -15647,8 +15888,9 @@ public:
 };
 
 class ColorManagedViewSettings : public pyObjRef {
-public:
+protected:
 	ColorManagedViewSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorManagedViewSettings() : pyObjRef(0) { }
 
 	enum look_items_enum {
@@ -15727,8 +15969,9 @@ public:
 };
 
 class ColorManagedInputColorspaceSettings : public pyObjRef {
-public:
+protected:
 	ColorManagedInputColorspaceSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorManagedInputColorspaceSettings() : pyObjRef(0) { }
 
 	enum color_space_items_enum {
@@ -15756,8 +15999,9 @@ public:
 };
 
 class ColorManagedSequencerColorspaceSettings : public pyObjRef {
-public:
+protected:
 	ColorManagedSequencerColorspaceSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ColorManagedSequencerColorspaceSettings() : pyObjRef(0) { }
 
 	enum color_space_items_enum {
@@ -15785,8 +16029,9 @@ public:
 };
 
 class Constraint : public pyObjRef {
-public:
+protected:
 	Constraint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Constraint() : pyObjRef(0) { }
 
 	std::string name() {
@@ -15964,8 +16209,9 @@ public:
 };
 
 class ConstraintTarget : public pyObjRef {
-public:
+protected:
 	ConstraintTarget(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ConstraintTarget() : pyObjRef(0) { }
 
 	Object target();
@@ -15980,8 +16226,9 @@ public:
 };
 
 class ChildOfConstraint : public Constraint {
-public:
+protected:
 	ChildOfConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	ChildOfConstraint() : Constraint(0) { }
 
 	Object target();
@@ -16076,8 +16323,9 @@ public:
 };
 
 class PythonConstraint : public Constraint {
-public:
+protected:
 	PythonConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	PythonConstraint() : Constraint(0) { }
 
 	std::map<std::string, ConstraintTarget> targets() {
@@ -16112,8 +16360,9 @@ public:
 };
 
 class StretchToConstraint : public Constraint {
-public:
+protected:
 	StretchToConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	StretchToConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -16242,8 +16491,9 @@ public:
 };
 
 class FollowPathConstraint : public Constraint {
-public:
+protected:
 	FollowPathConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	FollowPathConstraint() : Constraint(0) { }
 
 	Object target();
@@ -16343,8 +16593,9 @@ public:
 };
 
 class LockedTrackConstraint : public Constraint {
-public:
+protected:
 	LockedTrackConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	LockedTrackConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -16420,8 +16671,9 @@ public:
 };
 
 class ActionConstraint : public Constraint {
-public:
+protected:
 	ActionConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	ActionConstraint() : Constraint(0) { }
 
 	Object target();
@@ -16511,8 +16763,9 @@ public:
 };
 
 class CopyScaleConstraint : public Constraint {
-public:
+protected:
 	CopyScaleConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	CopyScaleConstraint() : Constraint(0) { }
 
 	Object target();
@@ -16559,8 +16812,9 @@ public:
 };
 
 class MaintainVolumeConstraint : public Constraint {
-public:
+protected:
 	MaintainVolumeConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	MaintainVolumeConstraint() : Constraint(0) { }
 
 	enum volume_items_enum {
@@ -16598,8 +16852,9 @@ public:
 };
 
 class CopyLocationConstraint : public Constraint {
-public:
+protected:
 	CopyLocationConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	CopyLocationConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -16678,8 +16933,9 @@ public:
 };
 
 class CopyRotationConstraint : public Constraint {
-public:
+protected:
 	CopyRotationConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	CopyRotationConstraint() : Constraint(0) { }
 
 	Object target();
@@ -16750,8 +17006,9 @@ public:
 };
 
 class CopyTransformsConstraint : public Constraint {
-public:
+protected:
 	CopyTransformsConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	CopyTransformsConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -16774,8 +17031,9 @@ public:
 };
 
 class FloorConstraint : public Constraint {
-public:
+protected:
 	FloorConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	FloorConstraint() : Constraint(0) { }
 
 	Object target();
@@ -16842,8 +17100,9 @@ public:
 };
 
 class TrackToConstraint : public Constraint {
-public:
+protected:
 	TrackToConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	TrackToConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -16927,8 +17186,9 @@ public:
 };
 
 class KinematicConstraint : public Constraint {
-public:
+protected:
 	KinematicConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	KinematicConstraint() : Constraint(0) { }
 
 	Object target();
@@ -17154,8 +17414,9 @@ public:
 };
 
 class RigidBodyJointConstraint : public Constraint {
-public:
+protected:
 	RigidBodyJointConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	RigidBodyJointConstraint() : Constraint(0) { }
 
 	Object target();
@@ -17398,8 +17659,9 @@ public:
 };
 
 class ClampToConstraint : public Constraint {
-public:
+protected:
 	ClampToConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	ClampToConstraint() : Constraint(0) { }
 
 	Object target();
@@ -17440,8 +17702,9 @@ public:
 };
 
 class LimitDistanceConstraint : public Constraint {
-public:
+protected:
 	LimitDistanceConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	LimitDistanceConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -17505,8 +17768,9 @@ public:
 };
 
 class LimitScaleConstraint : public Constraint {
-public:
+protected:
 	LimitScaleConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	LimitScaleConstraint() : Constraint(0) { }
 
 	bool use_min_x() {
@@ -17615,8 +17879,9 @@ public:
 };
 
 class LimitRotationConstraint : public Constraint {
-public:
+protected:
 	LimitRotationConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	LimitRotationConstraint() : Constraint(0) { }
 
 	bool use_limit_x() {
@@ -17701,8 +17966,9 @@ public:
 };
 
 class LimitLocationConstraint : public Constraint {
-public:
+protected:
 	LimitLocationConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	LimitLocationConstraint() : Constraint(0) { }
 
 	bool use_min_x() {
@@ -17811,8 +18077,9 @@ public:
 };
 
 class TransformConstraint : public Constraint {
-public:
+protected:
 	TransformConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	TransformConstraint() : Constraint(0) { }
 
 	Object target();
@@ -18197,8 +18464,9 @@ public:
 };
 
 class ShrinkwrapConstraint : public Constraint {
-public:
+protected:
 	ShrinkwrapConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	ShrinkwrapConstraint() : Constraint(0) { }
 
 	Object target();
@@ -18300,8 +18568,9 @@ public:
 };
 
 class DampedTrackConstraint : public Constraint {
-public:
+protected:
 	DampedTrackConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	DampedTrackConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -18352,8 +18621,9 @@ public:
 };
 
 class SplineIKConstraint : public Constraint {
-public:
+protected:
 	SplineIKConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	SplineIKConstraint() : Constraint(0) { }
 
 	Object target();
@@ -18482,8 +18752,9 @@ public:
 };
 
 class PivotConstraint : public Constraint {
-public:
+protected:
 	PivotConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	PivotConstraint() : Constraint(0) { }
 
 	float head_tail() {
@@ -18551,8 +18822,9 @@ public:
 };
 
 class FollowTrackConstraint : public Constraint {
-public:
+protected:
 	FollowTrackConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	FollowTrackConstraint() : Constraint(0) { }
 
 	MovieClip clip();
@@ -18628,8 +18900,9 @@ public:
 };
 
 class CameraSolverConstraint : public Constraint {
-public:
+protected:
 	CameraSolverConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	CameraSolverConstraint() : Constraint(0) { }
 
 	MovieClip clip();
@@ -18644,8 +18917,9 @@ public:
 };
 
 class ObjectSolverConstraint : public Constraint {
-public:
+protected:
 	ObjectSolverConstraint(PyObject* pyobj) : Constraint(pyobj) {}
+public:
 	ObjectSolverConstraint() : Constraint(0) { }
 
 	MovieClip clip();
@@ -18670,8 +18944,9 @@ public:
 };
 
 class Context : public pyObjRef {
-public:
+protected:
 	Context(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Context() : pyObjRef(0) { }
 
 	WindowManager window_manager();
@@ -18734,8 +19009,9 @@ public:
 };
 
 class Controller : public pyObjRef {
-public:
+protected:
 	Controller(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Controller() : pyObjRef(0) { }
 
 	std::string name() {
@@ -18818,8 +19094,9 @@ public:
 };
 
 class ExpressionController : public Controller {
-public:
+protected:
 	ExpressionController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	ExpressionController() : Controller(0) { }
 
 	std::string expression() {
@@ -18832,8 +19109,9 @@ public:
 };
 
 class PythonController : public Controller {
-public:
+protected:
 	PythonController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	PythonController() : Controller(0) { }
 
 	enum python_controller_modes_enum {
@@ -18880,44 +19158,51 @@ public:
 };
 
 class AndController : public Controller {
-public:
+protected:
 	AndController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	AndController() : Controller(0) { }
 };
 
 class OrController : public Controller {
-public:
+protected:
 	OrController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	OrController() : Controller(0) { }
 };
 
 class NorController : public Controller {
-public:
+protected:
 	NorController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	NorController() : Controller(0) { }
 };
 
 class NandController : public Controller {
-public:
+protected:
 	NandController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	NandController() : Controller(0) { }
 };
 
 class XorController : public Controller {
-public:
+protected:
 	XorController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	XorController() : Controller(0) { }
 };
 
 class XnorController : public Controller {
-public:
+protected:
 	XnorController(PyObject* pyobj) : Controller(pyobj) {}
+public:
 	XnorController() : Controller(0) { }
 };
 
 class Curve : public ID {
-public:
+protected:
 	Curve(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Curve() : ID(0) { }
 
 	Key shape_keys();
@@ -19281,8 +19566,9 @@ public:
 };
 
 class SurfaceCurve : public Curve {
-public:
+protected:
 	SurfaceCurve(PyObject* pyobj) : Curve(pyobj) {}
+public:
 	SurfaceCurve() : Curve(0) { }
 
 	bool use_uv_as_generated() {
@@ -19295,8 +19581,9 @@ public:
 };
 
 class TextCurve : public Curve {
-public:
+protected:
 	TextCurve(PyObject* pyobj) : Curve(pyobj) {}
+public:
 	TextCurve() : Curve(0) { }
 
 	enum prop_align_items_enum {
@@ -19464,8 +19751,9 @@ public:
 };
 
 class TextBox : public pyObjRef {
-public:
+protected:
 	TextBox(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TextBox() : pyObjRef(0) { }
 
 	float x() {
@@ -19502,8 +19790,9 @@ public:
 };
 
 class TextCharacterFormat : public pyObjRef {
-public:
+protected:
 	TextCharacterFormat(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TextCharacterFormat() : pyObjRef(0) { }
 
 	bool use_bold() {
@@ -19548,8 +19837,9 @@ public:
 };
 
 class SplinePoint : public pyObjRef {
-public:
+protected:
 	SplinePoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SplinePoint() : pyObjRef(0) { }
 
 	bool select() {
@@ -19610,8 +19900,9 @@ public:
 };
 
 class BezierSplinePoint : public pyObjRef {
-public:
+protected:
 	BezierSplinePoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BezierSplinePoint() : pyObjRef(0) { }
 
 	bool select_left_handle() {
@@ -19730,8 +20021,9 @@ public:
 };
 
 class Spline : public pyObjRef {
-public:
+protected:
 	Spline(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Spline() : pyObjRef(0) { }
 
 	std::map<std::string, SplinePoint> points() {
@@ -19933,8 +20225,9 @@ public:
 };
 
 class Depsgraph : public pyObjRef {
-public:
+protected:
 	Depsgraph(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Depsgraph() : pyObjRef(0) { }
 
 	void debug_graphviz(const std::string filename) {
@@ -19951,16 +20244,18 @@ public:
 };
 
 class DynamicPaintCanvasSettings : public pyObjRef {
-public:
+protected:
 	DynamicPaintCanvasSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DynamicPaintCanvasSettings() : pyObjRef(0) { }
 
 	std::map<std::string, DynamicPaintSurface> canvas_surfaces();
 };
 
 class DynamicPaintBrushSettings : public pyObjRef {
-public:
+protected:
 	DynamicPaintBrushSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DynamicPaintBrushSettings() : pyObjRef(0) { }
 
 	VFLOAT3 paint_color() {
@@ -20256,8 +20551,9 @@ public:
 };
 
 class DynamicPaintSurface : public pyObjRef {
-public:
+protected:
 	DynamicPaintSurface(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DynamicPaintSurface() : pyObjRef(0) { }
 
 	enum prop_dynamicpaint_surface_format_enum {
@@ -20804,8 +21100,9 @@ public:
 };
 
 class FCurve : public pyObjRef {
-public:
+protected:
 	FCurve(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FCurve() : pyObjRef(0) { }
 
 	enum prop_mode_extend_items_enum {
@@ -20965,8 +21262,9 @@ public:
 };
 
 class Keyframe : public pyObjRef {
-public:
+protected:
 	Keyframe(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Keyframe() : pyObjRef(0) { }
 
 	bool select_left_handle() {
@@ -21165,8 +21463,9 @@ public:
 };
 
 class FCurveSample : public pyObjRef {
-public:
+protected:
 	FCurveSample(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FCurveSample() : pyObjRef(0) { }
 
 	bool select() {
@@ -21187,8 +21486,9 @@ public:
 };
 
 class DriverTarget : public pyObjRef {
-public:
+protected:
 	DriverTarget(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DriverTarget() : pyObjRef(0) { }
 
 	ID id() {
@@ -21323,8 +21623,9 @@ public:
 };
 
 class DriverVariable : public pyObjRef {
-public:
+protected:
 	DriverVariable(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DriverVariable() : pyObjRef(0) { }
 
 	std::string name() {
@@ -21367,8 +21668,9 @@ public:
 };
 
 class Driver : public pyObjRef {
-public:
+protected:
 	Driver(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Driver() : pyObjRef(0) { }
 
 	enum prop_type_items_enum {
@@ -21428,8 +21730,9 @@ public:
 };
 
 class FModifier : public pyObjRef {
-public:
+protected:
 	FModifier(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FModifier() : pyObjRef(0) { }
 
 	enum fmodifier_type_items_enum {
@@ -21553,8 +21856,9 @@ public:
 };
 
 class FModifierGenerator : public FModifier {
-public:
+protected:
 	FModifierGenerator(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierGenerator() : FModifier(0) { }
 
 	bool use_additive() {
@@ -21607,8 +21911,9 @@ public:
 };
 
 class FModifierFunctionGenerator : public FModifier {
-public:
+protected:
 	FModifierFunctionGenerator(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierFunctionGenerator() : FModifier(0) { }
 
 	float amplitude() {
@@ -21681,8 +21986,9 @@ public:
 };
 
 class FModifierEnvelope : public FModifier {
-public:
+protected:
 	FModifierEnvelope(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierEnvelope() : FModifier(0) { }
 
 	std::map<std::string, FModifierEnvelopeControlPoint> control_points();
@@ -21713,8 +22019,9 @@ public:
 };
 
 class FModifierEnvelopeControlPoint : public pyObjRef {
-public:
+protected:
 	FModifierEnvelopeControlPoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FModifierEnvelopeControlPoint() : pyObjRef(0) { }
 
 	float min() {
@@ -21743,8 +22050,9 @@ public:
 };
 
 class FModifierCycles : public FModifier {
-public:
+protected:
 	FModifierCycles(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierCycles() : FModifier(0) { }
 
 	enum prop_type_items_enum {
@@ -21799,14 +22107,16 @@ public:
 };
 
 class FModifierPython : public FModifier {
-public:
+protected:
 	FModifierPython(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierPython() : FModifier(0) { }
 };
 
 class FModifierLimits : public FModifier {
-public:
+protected:
 	FModifierLimits(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierLimits() : FModifier(0) { }
 
 	bool use_min_x() {
@@ -21875,8 +22185,9 @@ public:
 };
 
 class FModifierNoise : public FModifier {
-public:
+protected:
 	FModifierNoise(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierNoise() : FModifier(0) { }
 
 	enum prop_modification_items_enum {
@@ -21947,8 +22258,9 @@ public:
 };
 
 class FModifierStepped : public FModifier {
-public:
+protected:
 	FModifierStepped(PyObject* pyobj) : FModifier(pyobj) {}
+public:
 	FModifierStepped() : FModifier(0) { }
 
 	float frame_step() {
@@ -22001,8 +22313,9 @@ public:
 };
 
 class FluidSettings : public pyObjRef {
-public:
+protected:
 	FluidSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FluidSettings() : pyObjRef(0) { }
 
 	enum prop_fluid_type_items_enum {
@@ -22037,8 +22350,9 @@ public:
 };
 
 class DomainFluidSettings : public FluidSettings {
-public:
+protected:
 	DomainFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	DomainFluidSettings() : FluidSettings(0) { }
 
 	int threads() {
@@ -22295,8 +22609,9 @@ public:
 };
 
 class FluidMeshVertex : public pyObjRef {
-public:
+protected:
 	FluidMeshVertex(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FluidMeshVertex() : pyObjRef(0) { }
 
 	VFLOAT3 velocity() {
@@ -22309,8 +22624,9 @@ public:
 };
 
 class FluidFluidSettings : public FluidSettings {
-public:
+protected:
 	FluidFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	FluidFluidSettings() : FluidSettings(0) { }
 
 	bool use() {
@@ -22364,8 +22680,9 @@ public:
 };
 
 class ObstacleFluidSettings : public FluidSettings {
-public:
+protected:
 	ObstacleFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	ObstacleFluidSettings() : FluidSettings(0) { }
 
 	bool use() {
@@ -22452,8 +22769,9 @@ public:
 };
 
 class InflowFluidSettings : public FluidSettings {
-public:
+protected:
 	InflowFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	InflowFluidSettings() : FluidSettings(0) { }
 
 	bool use() {
@@ -22515,8 +22833,9 @@ public:
 };
 
 class OutflowFluidSettings : public FluidSettings {
-public:
+protected:
 	OutflowFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	OutflowFluidSettings() : FluidSettings(0) { }
 
 	bool use() {
@@ -22562,8 +22881,9 @@ public:
 };
 
 class ParticleFluidSettings : public FluidSettings {
-public:
+protected:
 	ParticleFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	ParticleFluidSettings() : FluidSettings(0) { }
 
 	bool use_drops() {
@@ -22616,8 +22936,9 @@ public:
 };
 
 class ControlFluidSettings : public FluidSettings {
-public:
+protected:
 	ControlFluidSettings(PyObject* pyobj) : FluidSettings(pyobj) {}
+public:
 	ControlFluidSettings() : FluidSettings(0) { }
 
 	bool use() {
@@ -22694,8 +23015,9 @@ public:
 };
 
 class GreasePencil : public ID {
-public:
+protected:
 	GreasePencil(PyObject* pyobj) : ID(pyobj) {}
+public:
 	GreasePencil() : ID(0) { }
 
 	std::map<std::string, GPencilLayer> layers();
@@ -22752,8 +23074,9 @@ public:
 };
 
 class GPencilLayer : public pyObjRef {
-public:
+protected:
 	GPencilLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilLayer() : pyObjRef(0) { }
 
 	std::string info() {
@@ -22934,8 +23257,9 @@ public:
 };
 
 class GPencilFrame : public pyObjRef {
-public:
+protected:
 	GPencilFrame(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilFrame() : pyObjRef(0) { }
 
 	std::map<std::string, GPencilStroke> strokes();
@@ -22970,8 +23294,9 @@ public:
 };
 
 class GPencilStroke : public pyObjRef {
-public:
+protected:
 	GPencilStroke(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilStroke() : pyObjRef(0) { }
 
 	std::map<std::string, GPencilStrokePoint> points();
@@ -23012,8 +23337,9 @@ public:
 };
 
 class GPencilStrokePoint : public pyObjRef {
-public:
+protected:
 	GPencilStrokePoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPencilStrokePoint() : pyObjRef(0) { }
 
 	VFLOAT3 co() {
@@ -23042,8 +23368,9 @@ public:
 };
 
 class Group : public ID {
-public:
+protected:
 	Group(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Group() : ID(0) { }
 
 	VFLOAT3 dupli_offset() {
@@ -23066,8 +23393,9 @@ public:
 };
 
 class RenderSlot : public pyObjRef {
-public:
+protected:
 	RenderSlot(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderSlot() : pyObjRef(0) { }
 
 	std::string name() {
@@ -23080,8 +23408,9 @@ public:
 };
 
 class Image : public ID {
-public:
+protected:
 	Image(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Image() : ID(0) { }
 
 	std::string filepath() {
@@ -23649,8 +23978,9 @@ public:
 };
 
 class ImageUser : public pyObjRef {
-public:
+protected:
 	ImageUser(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ImageUser() : pyObjRef(0) { }
 
 	bool use_auto_refresh() {
@@ -23727,8 +24057,9 @@ public:
 };
 
 class ImagePackedFile : public pyObjRef {
-public:
+protected:
 	ImagePackedFile(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ImagePackedFile() : pyObjRef(0) { }
 
 	PackedFile packed_file();
@@ -23743,8 +24074,9 @@ public:
 };
 
 class Key : public ID {
-public:
+protected:
 	Key(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Key() : ID(0) { }
 
 	ShapeKey reference_key();
@@ -23777,8 +24109,9 @@ public:
 };
 
 class ShapeKey : public pyObjRef {
-public:
+protected:
 	ShapeKey(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ShapeKey() : pyObjRef(0) { }
 
 	std::string name() {
@@ -23873,8 +24206,9 @@ public:
 };
 
 class ShapeKeyPoint : public pyObjRef {
-public:
+protected:
 	ShapeKeyPoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ShapeKeyPoint() : pyObjRef(0) { }
 
 	VFLOAT3 co() {
@@ -23887,8 +24221,9 @@ public:
 };
 
 class ShapeKeyCurvePoint : public pyObjRef {
-public:
+protected:
 	ShapeKeyCurvePoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ShapeKeyCurvePoint() : pyObjRef(0) { }
 
 	VFLOAT3 co() {
@@ -23909,8 +24244,9 @@ public:
 };
 
 class ShapeKeyBezierPoint : public pyObjRef {
-public:
+protected:
 	ShapeKeyBezierPoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ShapeKeyBezierPoint() : pyObjRef(0) { }
 
 	VFLOAT3 co() {
@@ -23939,8 +24275,9 @@ public:
 };
 
 class Lamp : public ID {
-public:
+protected:
 	Lamp(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Lamp() : ID(0) { }
 
 	enum lamp_type_items_enum {
@@ -24056,8 +24393,9 @@ public:
 };
 
 class PointLamp : public Lamp {
-public:
+protected:
 	PointLamp(PyObject* pyobj) : Lamp(pyobj) {}
+public:
 	PointLamp() : Lamp(0) { }
 
 	enum prop_fallofftype_items_enum {
@@ -24401,8 +24739,9 @@ public:
 };
 
 class AreaLamp : public Lamp {
-public:
+protected:
 	AreaLamp(PyObject* pyobj) : Lamp(pyobj) {}
+public:
 	AreaLamp() : Lamp(0) { }
 
 	bool use_shadow() {
@@ -24772,8 +25111,9 @@ public:
 };
 
 class SpotLamp : public Lamp {
-public:
+protected:
 	SpotLamp(PyObject* pyobj) : Lamp(pyobj) {}
+public:
 	SpotLamp() : Lamp(0) { }
 
 	enum prop_fallofftype_items_enum {
@@ -25174,8 +25514,9 @@ public:
 };
 
 class SunLamp : public Lamp {
-public:
+protected:
 	SunLamp(PyObject* pyobj) : Lamp(pyobj) {}
+public:
 	SunLamp() : Lamp(0) { }
 
 	bool use_shadow() {
@@ -25482,8 +25823,9 @@ public:
 };
 
 class LampSkySettings : public pyObjRef {
-public:
+protected:
 	LampSkySettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LampSkySettings() : pyObjRef(0) { }
 
 	enum prop_skycolorspace_items_enum {
@@ -25665,14 +26007,16 @@ public:
 };
 
 class HemiLamp : public Lamp {
-public:
+protected:
 	HemiLamp(PyObject* pyobj) : Lamp(pyobj) {}
+public:
 	HemiLamp() : Lamp(0) { }
 };
 
 class LampTextureSlot : public TextureSlot {
-public:
+protected:
 	LampTextureSlot(PyObject* pyobj) : TextureSlot(pyobj) {}
+public:
 	LampTextureSlot() : TextureSlot(0) { }
 
 	enum prop_texture_coordinates_items_enum {
@@ -25736,8 +26080,9 @@ public:
 };
 
 class Lattice : public ID {
-public:
+protected:
 	Lattice(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Lattice() : ID(0) { }
 
 	int points_u() {
@@ -25848,8 +26193,9 @@ public:
 };
 
 class LatticePoint : public pyObjRef {
-public:
+protected:
 	LatticePoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LatticePoint() : pyObjRef(0) { }
 
 	bool select() {
@@ -25888,21 +26234,24 @@ public:
 };
 
 class LineStyleModifier : public pyObjRef {
-public:
+protected:
 	LineStyleModifier(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LineStyleModifier() : pyObjRef(0) { }
 
 };
 
 class LineStyleColorModifier : public LineStyleModifier {
-public:
+protected:
 	LineStyleColorModifier(PyObject* pyobj) : LineStyleModifier(pyobj) {}
+public:
 	LineStyleColorModifier() : LineStyleModifier(0) { }
 };
 
 class LineStyleColorModifier_AlongStroke : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_AlongStroke(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_AlongStroke() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26013,8 +26362,9 @@ public:
 };
 
 class LineStyleColorModifier_DistanceFromCamera : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_DistanceFromCamera(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_DistanceFromCamera() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26141,8 +26491,9 @@ public:
 };
 
 class LineStyleColorModifier_DistanceFromObject : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_DistanceFromObject(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_DistanceFromObject() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26271,8 +26622,9 @@ public:
 };
 
 class LineStyleColorModifier_Material : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_Material(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_Material() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26428,8 +26780,9 @@ public:
 };
 
 class LineStyleColorModifier_Tangent : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_Tangent(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_Tangent() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26540,8 +26893,9 @@ public:
 };
 
 class LineStyleColorModifier_Noise : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_Noise(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_Noise() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26676,8 +27030,9 @@ public:
 };
 
 class LineStyleColorModifier_CreaseAngle : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_CreaseAngle(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_CreaseAngle() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26804,8 +27159,9 @@ public:
 };
 
 class LineStyleColorModifier_Curvature_3D : public LineStyleColorModifier {
-public:
+protected:
 	LineStyleColorModifier_Curvature_3D(PyObject* pyobj) : LineStyleColorModifier(pyobj) {}
+public:
 	LineStyleColorModifier_Curvature_3D() : LineStyleColorModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -26932,14 +27288,16 @@ public:
 };
 
 class LineStyleAlphaModifier : public LineStyleModifier {
-public:
+protected:
 	LineStyleAlphaModifier(PyObject* pyobj) : LineStyleModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier() : LineStyleModifier(0) { }
 };
 
 class LineStyleAlphaModifier_AlongStroke : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_AlongStroke(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_AlongStroke() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27072,8 +27430,9 @@ public:
 };
 
 class LineStyleAlphaModifier_DistanceFromCamera : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_DistanceFromCamera(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_DistanceFromCamera() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27222,8 +27581,9 @@ public:
 };
 
 class LineStyleAlphaModifier_DistanceFromObject : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_DistanceFromObject(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_DistanceFromObject() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27374,8 +27734,9 @@ public:
 };
 
 class LineStyleAlphaModifier_Material : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_Material(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_Material() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27545,8 +27906,9 @@ public:
 };
 
 class LineStyleAlphaModifier_Tangent : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_Tangent(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_Tangent() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27679,8 +28041,9 @@ public:
 };
 
 class LineStyleAlphaModifier_Noise : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_Noise(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_Noise() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27837,8 +28200,9 @@ public:
 };
 
 class LineStyleAlphaModifier_CreaseAngle : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_CreaseAngle(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_CreaseAngle() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -27987,8 +28351,9 @@ public:
 };
 
 class LineStyleAlphaModifier_Curvature_3D : public LineStyleAlphaModifier {
-public:
+protected:
 	LineStyleAlphaModifier_Curvature_3D(PyObject* pyobj) : LineStyleAlphaModifier(pyobj) {}
+public:
 	LineStyleAlphaModifier_Curvature_3D() : LineStyleAlphaModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -28137,14 +28502,16 @@ public:
 };
 
 class LineStyleThicknessModifier : public LineStyleModifier {
-public:
+protected:
 	LineStyleThicknessModifier(PyObject* pyobj) : LineStyleModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier() : LineStyleModifier(0) { }
 };
 
 class LineStyleThicknessModifier_Tangent : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_Tangent(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_Tangent() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -28294,8 +28661,9 @@ public:
 };
 
 class LineStyleThicknessModifier_AlongStroke : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_AlongStroke(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_AlongStroke() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -28445,8 +28813,9 @@ public:
 };
 
 class LineStyleThicknessModifier_DistanceFromCamera : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_DistanceFromCamera(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_DistanceFromCamera() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -28612,8 +28981,9 @@ public:
 };
 
 class LineStyleThicknessModifier_DistanceFromObject : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_DistanceFromObject(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_DistanceFromObject() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -28781,8 +29151,9 @@ public:
 };
 
 class LineStyleThicknessModifier_Material : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_Material(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_Material() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -28969,8 +29340,9 @@ public:
 };
 
 class LineStyleThicknessModifier_Calligraphy : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_Calligraphy(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_Calligraphy() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29092,8 +29464,9 @@ public:
 };
 
 class LineStyleThicknessModifier_Noise : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_Noise(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_Noise() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29223,8 +29596,9 @@ public:
 };
 
 class LineStyleThicknessModifier_Curvature_3D : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_Curvature_3D(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_Curvature_3D() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29390,8 +29764,9 @@ public:
 };
 
 class LineStyleThicknessModifier_CreaseAngle : public LineStyleThicknessModifier {
-public:
+protected:
 	LineStyleThicknessModifier_CreaseAngle(PyObject* pyobj) : LineStyleThicknessModifier(pyobj) {}
+public:
 	LineStyleThicknessModifier_CreaseAngle() : LineStyleThicknessModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29557,14 +29932,16 @@ public:
 };
 
 class LineStyleGeometryModifier : public LineStyleModifier {
-public:
+protected:
 	LineStyleGeometryModifier(PyObject* pyobj) : LineStyleModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier() : LineStyleModifier(0) { }
 };
 
 class LineStyleGeometryModifier_Sampling : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_Sampling(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_Sampling() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29637,8 +30014,9 @@ public:
 };
 
 class LineStyleGeometryModifier_BezierCurve : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_BezierCurve(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_BezierCurve() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29711,8 +30089,9 @@ public:
 };
 
 class LineStyleGeometryModifier_SinusDisplacement : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_SinusDisplacement(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_SinusDisplacement() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29801,8 +30180,9 @@ public:
 };
 
 class LineStyleGeometryModifier_SpatialNoise : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_SpatialNoise(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_SpatialNoise() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -29907,8 +30287,9 @@ public:
 };
 
 class LineStyleGeometryModifier_PerlinNoise1D : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_PerlinNoise1D(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_PerlinNoise1D() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30013,8 +30394,9 @@ public:
 };
 
 class LineStyleGeometryModifier_PerlinNoise2D : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_PerlinNoise2D(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_PerlinNoise2D() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30119,8 +30501,9 @@ public:
 };
 
 class LineStyleGeometryModifier_BackboneStretcher : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_BackboneStretcher(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_BackboneStretcher() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30193,8 +30576,9 @@ public:
 };
 
 class LineStyleGeometryModifier_TipRemover : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_TipRemover(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_TipRemover() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30267,8 +30651,9 @@ public:
 };
 
 class LineStyleGeometryModifier_Polygonalization : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_Polygonalization(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_Polygonalization() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30341,8 +30726,9 @@ public:
 };
 
 class LineStyleGeometryModifier_GuidingLines : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_GuidingLines(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_GuidingLines() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30415,8 +30801,9 @@ public:
 };
 
 class LineStyleGeometryModifier_Blueprint : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_Blueprint(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_Blueprint() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30546,8 +30933,9 @@ public:
 };
 
 class LineStyleGeometryModifier_2DOffset : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_2DOffset(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_2DOffset() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30644,8 +31032,9 @@ public:
 };
 
 class LineStyleGeometryModifier_2DTransform : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_2DTransform(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_2DTransform() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30785,8 +31174,9 @@ public:
 };
 
 class LineStyleGeometryModifier_Simplification : public LineStyleGeometryModifier {
-public:
+protected:
 	LineStyleGeometryModifier_Simplification(PyObject* pyobj) : LineStyleGeometryModifier(pyobj) {}
+public:
 	LineStyleGeometryModifier_Simplification() : LineStyleGeometryModifier(0) { }
 
 	enum modifier_type_items_enum {
@@ -30859,8 +31249,9 @@ public:
 };
 
 class FreestyleLineStyle : public ID {
-public:
+protected:
 	FreestyleLineStyle(PyObject* pyobj) : ID(pyobj) {}
+public:
 	FreestyleLineStyle() : ID(0) { }
 
 	std::map<std::string, LineStyleTextureSlot> texture_slots();
@@ -31381,8 +31772,9 @@ public:
 };
 
 class LineStyleTextureSlot : public TextureSlot {
-public:
+protected:
 	LineStyleTextureSlot(PyObject* pyobj) : TextureSlot(pyobj) {}
+public:
 	LineStyleTextureSlot() : TextureSlot(0) { }
 
 	enum prop_x_mapping_items_enum {
@@ -31557,8 +31949,9 @@ public:
 };
 
 class BlendData : public pyObjRef {
-public:
+protected:
 	BlendData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BlendData() : pyObjRef(0) { }
 
 	std::string filepath() {
@@ -31697,8 +32090,9 @@ public:
 };
 
 class Material : public ID {
-public:
+protected:
 	Material(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Material() : ID(0) { }
 
 	enum prop_type_items_enum {
@@ -32489,8 +32883,9 @@ public:
 };
 
 class TexPaintSlot : public pyObjRef {
-public:
+protected:
 	TexPaintSlot(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TexPaintSlot() : pyObjRef(0) { }
 
 	std::string uv_layer() {
@@ -32511,8 +32906,9 @@ public:
 };
 
 class MaterialRaytraceMirror : public pyObjRef {
-public:
+protected:
 	MaterialRaytraceMirror(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialRaytraceMirror() : pyObjRef(0) { }
 
 	bool use() {
@@ -32621,8 +33017,9 @@ public:
 };
 
 class MaterialRaytraceTransparency : public pyObjRef {
-public:
+protected:
 	MaterialRaytraceTransparency(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialRaytraceTransparency() : pyObjRef(0) { }
 
 	float ior() {
@@ -32707,8 +33104,9 @@ public:
 };
 
 class MaterialVolume : public pyObjRef {
-public:
+protected:
 	MaterialVolume(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialVolume() : pyObjRef(0) { }
 
 	enum prop_stepsize_items_enum {
@@ -32900,8 +33298,9 @@ public:
 };
 
 class MaterialHalo : public pyObjRef {
-public:
+protected:
 	MaterialHalo(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialHalo() : pyObjRef(0) { }
 
 	float size() {
@@ -33074,8 +33473,9 @@ public:
 };
 
 class MaterialSubsurfaceScattering : public pyObjRef {
-public:
+protected:
 	MaterialSubsurfaceScattering(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialSubsurfaceScattering() : pyObjRef(0) { }
 
 	VFLOAT3 radius() {
@@ -33160,8 +33560,9 @@ public:
 };
 
 class MaterialTextureSlot : public TextureSlot {
-public:
+protected:
 	MaterialTextureSlot(PyObject* pyobj) : TextureSlot(pyobj) {}
+public:
 	MaterialTextureSlot() : TextureSlot(0) { }
 
 	enum prop_texture_coordinates_items_enum {
@@ -33758,8 +34159,9 @@ public:
 };
 
 class MaterialStrand : public pyObjRef {
-public:
+protected:
 	MaterialStrand(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialStrand() : pyObjRef(0) { }
 
 	bool use_tangent_shading() {
@@ -33844,8 +34246,9 @@ public:
 };
 
 class MaterialPhysics : public pyObjRef {
-public:
+protected:
 	MaterialPhysics(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialPhysics() : pyObjRef(0) { }
 
 	float friction() {
@@ -33898,8 +34301,9 @@ public:
 };
 
 class MaterialGameSettings : public pyObjRef {
-public:
+protected:
 	MaterialGameSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialGameSettings() : pyObjRef(0) { }
 
 	bool use_backface_culling() {
@@ -33990,8 +34394,9 @@ public:
 };
 
 class Mesh : public ID {
-public:
+protected:
 	Mesh(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Mesh() : ID(0) { }
 
 	std::map<std::string, MeshVertex> vertices();
@@ -34421,8 +34826,8 @@ public:
 	}
 
 	struct calc_smooth_groups_result {
-		std::array<int, 1> poly_groups;	/**< Smooth Groups */
-		int groups;	/**< Total number of groups */
+		std::array<int, 1> poly_groups;
+		int groups;
 	};
 
 	calc_smooth_groups_result calc_smooth_groups(bool use_bitflags = false) {
@@ -34473,8 +34878,9 @@ public:
 };
 
 class MeshSkinVertexLayer : public pyObjRef {
-public:
+protected:
 	MeshSkinVertexLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshSkinVertexLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -34489,8 +34895,9 @@ public:
 };
 
 class MeshSkinVertex : public pyObjRef {
-public:
+protected:
 	MeshSkinVertex(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshSkinVertex() : pyObjRef(0) { }
 
 	VFLOAT2 radius() {
@@ -34519,16 +34926,18 @@ public:
 };
 
 class MeshPaintMaskLayer : public pyObjRef {
-public:
+protected:
 	MeshPaintMaskLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPaintMaskLayer() : pyObjRef(0) { }
 
 	std::map<std::string, MeshPaintMaskProperty> data();
 };
 
 class MeshPaintMaskProperty : public pyObjRef {
-public:
+protected:
 	MeshPaintMaskProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPaintMaskProperty() : pyObjRef(0) { }
 
 	float value() {
@@ -34541,8 +34950,9 @@ public:
 };
 
 class MeshVertex : public pyObjRef {
-public:
+protected:
 	MeshVertex(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertex() : pyObjRef(0) { }
 
 	VFLOAT3 co() {
@@ -34605,8 +35015,9 @@ public:
 };
 
 class VertexGroupElement : public pyObjRef {
-public:
+protected:
 	VertexGroupElement(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexGroupElement() : pyObjRef(0) { }
 
 	int group() {
@@ -34627,8 +35038,9 @@ public:
 };
 
 class MeshEdge : public pyObjRef {
-public:
+protected:
 	MeshEdge(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshEdge() : pyObjRef(0) { }
 
 	std::array<int, 2> vertices() {
@@ -34713,8 +35125,9 @@ public:
 };
 
 class MeshTessFace : public pyObjRef {
-public:
+protected:
 	MeshTessFace(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshTessFace() : pyObjRef(0) { }
 
 	std::array<int, 4> vertices() {
@@ -34799,8 +35212,9 @@ public:
 };
 
 class MeshLoop : public pyObjRef {
-public:
+protected:
 	MeshLoop(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshLoop() : pyObjRef(0) { }
 
 	int vertex_index() {
@@ -34861,8 +35275,9 @@ public:
 };
 
 class MeshPolygon : public pyObjRef {
-public:
+protected:
 	MeshPolygon(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygon() : pyObjRef(0) { }
 
 	std::array<int, 3> vertices() {
@@ -34963,8 +35378,9 @@ public:
 };
 
 class MeshUVLoopLayer : public pyObjRef {
-public:
+protected:
 	MeshUVLoopLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshUVLoopLayer() : pyObjRef(0) { }
 
 	std::map<std::string, MeshUVLoop> data();
@@ -34979,8 +35395,9 @@ public:
 };
 
 class MeshUVLoop : public pyObjRef {
-public:
+protected:
 	MeshUVLoop(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshUVLoop() : pyObjRef(0) { }
 
 	VFLOAT2 uv() {
@@ -35017,8 +35434,9 @@ public:
 };
 
 class MeshTextureFaceLayer : public pyObjRef {
-public:
+protected:
 	MeshTextureFaceLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshTextureFaceLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35057,8 +35475,9 @@ public:
 };
 
 class MeshTextureFace : public pyObjRef {
-public:
+protected:
 	MeshTextureFace(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshTextureFace() : pyObjRef(0) { }
 
 	Image image() {
@@ -35115,8 +35534,9 @@ public:
 };
 
 class MeshTexturePolyLayer : public pyObjRef {
-public:
+protected:
 	MeshTexturePolyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshTexturePolyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35155,8 +35575,9 @@ public:
 };
 
 class MeshTexturePoly : public pyObjRef {
-public:
+protected:
 	MeshTexturePoly(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshTexturePoly() : pyObjRef(0) { }
 
 	Image image() {
@@ -35165,8 +35586,9 @@ public:
 };
 
 class MeshColorLayer : public pyObjRef {
-public:
+protected:
 	MeshColorLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshColorLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35197,8 +35619,9 @@ public:
 };
 
 class MeshColor : public pyObjRef {
-public:
+protected:
 	MeshColor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshColor() : pyObjRef(0) { }
 
 	VFLOAT3 color1() {
@@ -35235,8 +35658,9 @@ public:
 };
 
 class MeshLoopColorLayer : public pyObjRef {
-public:
+protected:
 	MeshLoopColorLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshLoopColorLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35267,8 +35691,9 @@ public:
 };
 
 class MeshLoopColor : public pyObjRef {
-public:
+protected:
 	MeshLoopColor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshLoopColor() : pyObjRef(0) { }
 
 	VFLOAT3 color() {
@@ -35281,8 +35706,9 @@ public:
 };
 
 class MeshVertexFloatPropertyLayer : public pyObjRef {
-public:
+protected:
 	MeshVertexFloatPropertyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertexFloatPropertyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35297,8 +35723,9 @@ public:
 };
 
 class MeshVertexFloatProperty : public pyObjRef {
-public:
+protected:
 	MeshVertexFloatProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertexFloatProperty() : pyObjRef(0) { }
 
 	float value() {
@@ -35311,8 +35738,9 @@ public:
 };
 
 class MeshPolygonFloatPropertyLayer : public pyObjRef {
-public:
+protected:
 	MeshPolygonFloatPropertyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygonFloatPropertyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35327,8 +35755,9 @@ public:
 };
 
 class MeshPolygonFloatProperty : public pyObjRef {
-public:
+protected:
 	MeshPolygonFloatProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygonFloatProperty() : pyObjRef(0) { }
 
 	float value() {
@@ -35341,8 +35770,9 @@ public:
 };
 
 class MeshVertexIntPropertyLayer : public pyObjRef {
-public:
+protected:
 	MeshVertexIntPropertyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertexIntPropertyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35357,8 +35787,9 @@ public:
 };
 
 class MeshVertexIntProperty : public pyObjRef {
-public:
+protected:
 	MeshVertexIntProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertexIntProperty() : pyObjRef(0) { }
 
 	int value() {
@@ -35371,8 +35802,9 @@ public:
 };
 
 class MeshPolygonIntPropertyLayer : public pyObjRef {
-public:
+protected:
 	MeshPolygonIntPropertyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygonIntPropertyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35387,8 +35819,9 @@ public:
 };
 
 class MeshPolygonIntProperty : public pyObjRef {
-public:
+protected:
 	MeshPolygonIntProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygonIntProperty() : pyObjRef(0) { }
 
 	int value() {
@@ -35401,8 +35834,9 @@ public:
 };
 
 class MeshVertexStringPropertyLayer : public pyObjRef {
-public:
+protected:
 	MeshVertexStringPropertyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertexStringPropertyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35417,8 +35851,9 @@ public:
 };
 
 class MeshVertexStringProperty : public pyObjRef {
-public:
+protected:
 	MeshVertexStringProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshVertexStringProperty() : pyObjRef(0) { }
 
 	std::string value() {
@@ -35431,8 +35866,9 @@ public:
 };
 
 class MeshPolygonStringPropertyLayer : public pyObjRef {
-public:
+protected:
 	MeshPolygonStringPropertyLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygonStringPropertyLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35447,8 +35883,9 @@ public:
 };
 
 class MeshPolygonStringProperty : public pyObjRef {
-public:
+protected:
 	MeshPolygonStringProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshPolygonStringProperty() : pyObjRef(0) { }
 
 	std::string value() {
@@ -35461,8 +35898,9 @@ public:
 };
 
 class MetaElement : public pyObjRef {
-public:
+protected:
 	MetaElement(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MetaElement() : pyObjRef(0) { }
 
 	enum metaelem_type_items_enum {
@@ -35566,8 +36004,9 @@ public:
 };
 
 class MetaBall : public ID {
-public:
+protected:
 	MetaBall(PyObject* pyobj) : ID(pyobj) {}
+public:
 	MetaBall() : ID(0) { }
 
 	std::map<std::string, MetaElement> elements() {
@@ -35672,8 +36111,9 @@ public:
 };
 
 class Modifier : public pyObjRef {
-public:
+protected:
 	Modifier(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Modifier() : pyObjRef(0) { }
 
 	std::string name() {
@@ -35806,8 +36246,9 @@ public:
 };
 
 class SubsurfModifier : public Modifier {
-public:
+protected:
 	SubsurfModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SubsurfModifier() : Modifier(0) { }
 
 	enum prop_subdivision_type_items_enum {
@@ -35868,8 +36309,9 @@ public:
 };
 
 class LatticeModifier : public Modifier {
-public:
+protected:
 	LatticeModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	LatticeModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -35892,8 +36334,9 @@ public:
 };
 
 class CurveModifier : public Modifier {
-public:
+protected:
 	CurveModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	CurveModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -35936,8 +36379,9 @@ public:
 };
 
 class BuildModifier : public Modifier {
-public:
+protected:
 	BuildModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	BuildModifier() : Modifier(0) { }
 
 	float frame_start() {
@@ -35982,8 +36426,9 @@ public:
 };
 
 class MirrorModifier : public Modifier {
-public:
+protected:
 	MirrorModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	MirrorModifier() : Modifier(0) { }
 
 	bool use_x() {
@@ -36062,8 +36507,9 @@ public:
 };
 
 class DecimateModifier : public Modifier {
-public:
+protected:
 	DecimateModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	DecimateModifier() : Modifier(0) { }
 
 	enum modifier_decim_mode_items_enum {
@@ -36192,8 +36638,9 @@ public:
 };
 
 class WaveModifier : public Modifier {
-public:
+protected:
 	WaveModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	WaveModifier() : Modifier(0) { }
 
 	bool use_x() {
@@ -36384,8 +36831,9 @@ public:
 };
 
 class ArmatureModifier : public Modifier {
-public:
+protected:
 	ArmatureModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ArmatureModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -36440,8 +36888,9 @@ public:
 };
 
 class HookModifier : public Modifier {
-public:
+protected:
 	HookModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	HookModifier() : Modifier(0) { }
 
 	float strength() {
@@ -36531,8 +36980,9 @@ public:
 };
 
 class SoftBodyModifier : public Modifier {
-public:
+protected:
 	SoftBodyModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SoftBodyModifier() : Modifier(0) { }
 
 	SoftBodySettings settings();
@@ -36541,8 +36991,9 @@ public:
 };
 
 class BooleanModifier : public Modifier {
-public:
+protected:
 	BooleanModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	BooleanModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -36574,8 +37025,9 @@ public:
 };
 
 class ArrayModifier : public Modifier {
-public:
+protected:
 	ArrayModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ArrayModifier() : Modifier(0) { }
 
 	enum prop_fit_type_items_enum {
@@ -36693,8 +37145,9 @@ public:
 };
 
 class EdgeSplitModifier : public Modifier {
-public:
+protected:
 	EdgeSplitModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	EdgeSplitModifier() : Modifier(0) { }
 
 	float split_angle() {
@@ -36723,8 +37176,9 @@ public:
 };
 
 class DisplaceModifier : public Modifier {
-public:
+protected:
 	DisplaceModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	DisplaceModifier() : Modifier(0) { }
 
 	std::string vertex_group() {
@@ -36820,8 +37274,9 @@ public:
 };
 
 class UVProjectModifier : public Modifier {
-public:
+protected:
 	UVProjectModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	UVProjectModifier() : Modifier(0) { }
 
 	std::string uv_layer() {
@@ -36888,16 +37343,18 @@ public:
 };
 
 class UVProjector : public pyObjRef {
-public:
+protected:
 	UVProjector(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UVProjector() : pyObjRef(0) { }
 
 	Object object_value();
 };
 
 class SmoothModifier : public Modifier {
-public:
+protected:
 	SmoothModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SmoothModifier() : Modifier(0) { }
 
 	bool use_x() {
@@ -36950,8 +37407,9 @@ public:
 };
 
 class CorrectiveSmoothModifier : public Modifier {
-public:
+protected:
 	CorrectiveSmoothModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	CorrectiveSmoothModifier() : Modifier(0) { }
 
 	float factor() {
@@ -37060,8 +37518,9 @@ public:
 };
 
 class CastModifier : public Modifier {
-public:
+protected:
 	CastModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	CastModifier() : Modifier(0) { }
 
 	enum prop_cast_type_items_enum {
@@ -37165,8 +37624,9 @@ public:
 };
 
 class MeshDeformModifier : public Modifier {
-public:
+protected:
 	MeshDeformModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	MeshDeformModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -37213,16 +37673,18 @@ public:
 };
 
 class ParticleSystemModifier : public Modifier {
-public:
+protected:
 	ParticleSystemModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ParticleSystemModifier() : Modifier(0) { }
 
 	ParticleSystem particle_system();
 };
 
 class ParticleInstanceModifier : public Modifier {
-public:
+protected:
 	ParticleInstanceModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ParticleInstanceModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -37342,8 +37804,9 @@ public:
 };
 
 class ExplodeModifier : public Modifier {
-public:
+protected:
 	ExplodeModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ExplodeModifier() : Modifier(0) { }
 
 	std::string vertex_group() {
@@ -37412,8 +37875,9 @@ public:
 };
 
 class ClothModifier : public Modifier {
-public:
+protected:
 	ClothModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ClothModifier() : Modifier(0) { }
 
 	ClothSettings settings() {
@@ -37456,16 +37920,18 @@ public:
 };
 
 class CollisionModifier : public Modifier {
-public:
+protected:
 	CollisionModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	CollisionModifier() : Modifier(0) { }
 
 	CollisionSettings settings();
 };
 
 class BevelModifier : public Modifier {
-public:
+protected:
 	BevelModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	BevelModifier() : Modifier(0) { }
 
 	float width() {
@@ -37619,8 +38085,9 @@ public:
 };
 
 class ShrinkwrapModifier : public Modifier {
-public:
+protected:
 	ShrinkwrapModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ShrinkwrapModifier() : Modifier(0) { }
 
 	enum shrink_type_items_enum {
@@ -37759,8 +38226,9 @@ public:
 };
 
 class FluidSimulationModifier : public Modifier {
-public:
+protected:
 	FluidSimulationModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	FluidSimulationModifier() : Modifier(0) { }
 
 	FluidSettings settings() {
@@ -37769,8 +38237,9 @@ public:
 };
 
 class MaskModifier : public Modifier {
-public:
+protected:
 	MaskModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	MaskModifier() : Modifier(0) { }
 
 	enum modifier_mask_mode_items_enum {
@@ -37817,8 +38286,9 @@ public:
 };
 
 class SimpleDeformModifier : public Modifier {
-public:
+protected:
 	SimpleDeformModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SimpleDeformModifier() : Modifier(0) { }
 
 	enum simple_deform_mode_items_enum {
@@ -37899,8 +38369,9 @@ public:
 };
 
 class WarpModifier : public Modifier {
-public:
+protected:
 	WarpModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	WarpModifier() : Modifier(0) { }
 
 	Object object_from();
@@ -38016,8 +38487,9 @@ public:
 };
 
 class MultiresModifier : public Modifier {
-public:
+protected:
 	MultiresModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	MultiresModifier() : Modifier(0) { }
 
 	enum prop_subdivision_type_items_enum {
@@ -38110,14 +38582,16 @@ public:
 };
 
 class SurfaceModifier : public Modifier {
-public:
+protected:
 	SurfaceModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SurfaceModifier() : Modifier(0) { }
 };
 
 class SmokeModifier : public Modifier {
-public:
+protected:
 	SmokeModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SmokeModifier() : Modifier(0) { }
 
 	SmokeDomainSettings domain_settings();
@@ -38154,8 +38628,9 @@ public:
 };
 
 class SolidifyModifier : public Modifier {
-public:
+protected:
 	SolidifyModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SolidifyModifier() : Modifier(0) { }
 
 	float thickness() {
@@ -38288,8 +38763,9 @@ public:
 };
 
 class ScrewModifier : public Modifier {
-public:
+protected:
 	ScrewModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	ScrewModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -38409,8 +38885,9 @@ public:
 };
 
 class UVWarpModifier : public Modifier {
-public:
+protected:
 	UVWarpModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	UVWarpModifier() : Modifier(0) { }
 
 	enum uvwarp_axis_enum {
@@ -38492,8 +38969,9 @@ public:
 };
 
 class VertexWeightEditModifier : public Modifier {
-public:
+protected:
 	VertexWeightEditModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	VertexWeightEditModifier() : Modifier(0) { }
 
 	std::string vertex_group() {
@@ -38666,8 +39144,9 @@ public:
 };
 
 class VertexWeightMixModifier : public Modifier {
-public:
+protected:
 	VertexWeightMixModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	VertexWeightMixModifier() : Modifier(0) { }
 
 	std::string vertex_group_a() {
@@ -38846,8 +39325,9 @@ public:
 };
 
 class VertexWeightProximityModifier : public Modifier {
-public:
+protected:
 	VertexWeightProximityModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	VertexWeightProximityModifier() : Modifier(0) { }
 
 	std::string vertex_group() {
@@ -39042,8 +39522,9 @@ public:
 };
 
 class DynamicPaintModifier : public Modifier {
-public:
+protected:
 	DynamicPaintModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	DynamicPaintModifier() : Modifier(0) { }
 
 	DynamicPaintCanvasSettings canvas_settings() {
@@ -39080,8 +39561,9 @@ public:
 };
 
 class OceanModifier : public Modifier {
-public:
+protected:
 	OceanModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	OceanModifier() : Modifier(0) { }
 
 	enum geometry_items_enum {
@@ -39302,8 +39784,9 @@ public:
 };
 
 class RemeshModifier : public Modifier {
-public:
+protected:
 	RemeshModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	RemeshModifier() : Modifier(0) { }
 
 	enum mode_items_enum {
@@ -39381,8 +39864,9 @@ public:
 };
 
 class SkinModifier : public Modifier {
-public:
+protected:
 	SkinModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	SkinModifier() : Modifier(0) { }
 
 	float branch_smoothing() {
@@ -39427,8 +39911,9 @@ public:
 };
 
 class LaplacianSmoothModifier : public Modifier {
-public:
+protected:
 	LaplacianSmoothModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	LaplacianSmoothModifier() : Modifier(0) { }
 
 	bool use_x() {
@@ -39505,8 +39990,9 @@ public:
 };
 
 class TriangulateModifier : public Modifier {
-public:
+protected:
 	TriangulateModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	TriangulateModifier() : Modifier(0) { }
 
 	enum modifier_triangulate_quad_method_items_enum {
@@ -39561,8 +40047,9 @@ public:
 };
 
 class MeshCacheModifier : public Modifier {
-public:
+protected:
 	MeshCacheModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	MeshCacheModifier() : Modifier(0) { }
 
 	enum prop_format_type_items_enum {
@@ -39805,8 +40292,9 @@ public:
 };
 
 class LaplacianDeformModifier : public Modifier {
-public:
+protected:
 	LaplacianDeformModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	LaplacianDeformModifier() : Modifier(0) { }
 
 	std::string vertex_group() {
@@ -39835,8 +40323,9 @@ public:
 };
 
 class WireframeModifier : public Modifier {
-public:
+protected:
 	WireframeModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	WireframeModifier() : Modifier(0) { }
 
 	float thickness() {
@@ -39937,8 +40426,9 @@ public:
 };
 
 class DataTransferModifier : public Modifier {
-public:
+protected:
 	DataTransferModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	DataTransferModifier() : Modifier(0) { }
 
 	Object object_value();
@@ -40429,8 +40919,9 @@ public:
 };
 
 class NormalEditModifier : public Modifier {
-public:
+protected:
 	NormalEditModifier(PyObject* pyobj) : Modifier(pyobj) {}
+public:
 	NormalEditModifier() : Modifier(0) { }
 
 	enum prop_mode_items_enum {
@@ -40527,8 +41018,9 @@ public:
 };
 
 class NlaTrack : public pyObjRef {
-public:
+protected:
 	NlaTrack(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NlaTrack() : pyObjRef(0) { }
 
 	std::map<std::string, NlaStrip> strips();
@@ -40583,8 +41075,9 @@ public:
 };
 
 class NlaStrip : public pyObjRef {
-public:
+protected:
 	NlaStrip(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NlaStrip() : pyObjRef(0) { }
 
 	std::string name() {
@@ -40842,8 +41335,9 @@ public:
 };
 
 class NodeSocket : public pyObjRef {
-public:
+protected:
 	NodeSocket(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeSocket() : pyObjRef(0) { }
 
 	std::string name() {
@@ -40961,8 +41455,9 @@ public:
 };
 
 class NodeSocketInterface : public pyObjRef {
-public:
+protected:
 	NodeSocketInterface(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeSocketInterface() : pyObjRef(0) { }
 
 	std::string name() {
@@ -41000,8 +41495,9 @@ public:
 };
 
 class Node : public pyObjRef {
-public:
+protected:
 	Node(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Node() : pyObjRef(0) { }
 
 	enum dummy_static_type_items_enum {
@@ -41837,8 +42333,9 @@ public:
 };
 
 class NodeLink : public pyObjRef {
-public:
+protected:
 	NodeLink(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeLink() : pyObjRef(0) { }
 
 	bool is_valid() {
@@ -41875,8 +42372,9 @@ public:
 };
 
 class NodeInternalSocketTemplate : public pyObjRef {
-public:
+protected:
 	NodeInternalSocketTemplate(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeInternalSocketTemplate() : pyObjRef(0) { }
 
 	std::string name() {
@@ -41927,8 +42425,9 @@ public:
 };
 
 class NodeInternal : public Node {
-public:
+protected:
 	NodeInternal(PyObject* pyobj) : Node(pyobj) {}
+public:
 	NodeInternal() : Node(0) { }
 
 	bool poll(NodeTree node_tree);
@@ -41945,14 +42444,16 @@ public:
 };
 
 class ShaderNode : public NodeInternal {
-public:
+protected:
 	ShaderNode(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	ShaderNode() : NodeInternal(0) { }
 };
 
 class CompositorNode : public NodeInternal {
-public:
+protected:
 	CompositorNode(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	CompositorNode() : NodeInternal(0) { }
 
 	void tag_need_exec() {
@@ -41961,14 +42462,16 @@ public:
 };
 
 class TextureNode : public NodeInternal {
-public:
+protected:
 	TextureNode(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	TextureNode() : NodeInternal(0) { }
 };
 
 class NodeTree : public ID {
-public:
+protected:
 	NodeTree(PyObject* pyobj) : ID(pyobj) {}
+public:
 	NodeTree() : ID(0) { }
 
 	VFLOAT2 view_center() {
@@ -42633,8 +43136,9 @@ public:
 };
 
 class NodeSocketStandard : public NodeSocket {
-public:
+protected:
 	NodeSocketStandard(PyObject* pyobj) : NodeSocket(pyobj) {}
+public:
 	NodeSocketStandard() : NodeSocket(0) { }
 
 	void draw(Context context, UILayout layout, Node node, const std::string text);
@@ -42648,8 +43152,9 @@ public:
 };
 
 class NodeSocketInterfaceStandard : public NodeSocketInterface {
-public:
+protected:
 	NodeSocketInterfaceStandard(PyObject* pyobj) : NodeSocketInterface(pyobj) {}
+public:
 	NodeSocketInterfaceStandard() : NodeSocketInterface(0) { }
 
 	enum node_socket_type_items_enum {
@@ -42693,8 +43198,9 @@ public:
 };
 
 class NodeSocketFloat : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketFloat(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketFloat() : NodeSocketStandard(0) { }
 
 	float default_value() {
@@ -42707,8 +43213,9 @@ public:
 };
 
 class NodeSocketInterfaceFloat : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceFloat(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceFloat() : NodeSocketInterfaceStandard(0) { }
 
 	float default_value() {
@@ -42737,8 +43244,9 @@ public:
 };
 
 class NodeSocketFloatUnsigned : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketFloatUnsigned(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketFloatUnsigned() : NodeSocketStandard(0) { }
 
 	float default_value() {
@@ -42751,8 +43259,9 @@ public:
 };
 
 class NodeSocketInterfaceFloatUnsigned : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceFloatUnsigned(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceFloatUnsigned() : NodeSocketInterfaceStandard(0) { }
 
 	float default_value() {
@@ -42781,8 +43290,9 @@ public:
 };
 
 class NodeSocketFloatPercentage : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketFloatPercentage(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketFloatPercentage() : NodeSocketStandard(0) { }
 
 	float default_value() {
@@ -42795,8 +43305,9 @@ public:
 };
 
 class NodeSocketInterfaceFloatPercentage : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceFloatPercentage(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceFloatPercentage() : NodeSocketInterfaceStandard(0) { }
 
 	float default_value() {
@@ -42825,8 +43336,9 @@ public:
 };
 
 class NodeSocketFloatFactor : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketFloatFactor(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketFloatFactor() : NodeSocketStandard(0) { }
 
 	float default_value() {
@@ -42839,8 +43351,9 @@ public:
 };
 
 class NodeSocketInterfaceFloatFactor : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceFloatFactor(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceFloatFactor() : NodeSocketInterfaceStandard(0) { }
 
 	float default_value() {
@@ -42869,8 +43382,9 @@ public:
 };
 
 class NodeSocketFloatAngle : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketFloatAngle(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketFloatAngle() : NodeSocketStandard(0) { }
 
 	float default_value() {
@@ -42883,8 +43397,9 @@ public:
 };
 
 class NodeSocketInterfaceFloatAngle : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceFloatAngle(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceFloatAngle() : NodeSocketInterfaceStandard(0) { }
 
 	float default_value() {
@@ -42913,8 +43428,9 @@ public:
 };
 
 class NodeSocketFloatTime : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketFloatTime(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketFloatTime() : NodeSocketStandard(0) { }
 
 	float default_value() {
@@ -42927,8 +43443,9 @@ public:
 };
 
 class NodeSocketInterfaceFloatTime : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceFloatTime(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceFloatTime() : NodeSocketInterfaceStandard(0) { }
 
 	float default_value() {
@@ -42957,8 +43474,9 @@ public:
 };
 
 class NodeSocketInt : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketInt(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketInt() : NodeSocketStandard(0) { }
 
 	int default_value() {
@@ -42971,8 +43489,9 @@ public:
 };
 
 class NodeSocketInterfaceInt : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceInt(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceInt() : NodeSocketInterfaceStandard(0) { }
 
 	int default_value() {
@@ -43001,8 +43520,9 @@ public:
 };
 
 class NodeSocketIntUnsigned : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketIntUnsigned(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketIntUnsigned() : NodeSocketStandard(0) { }
 
 	int default_value() {
@@ -43015,8 +43535,9 @@ public:
 };
 
 class NodeSocketInterfaceIntUnsigned : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceIntUnsigned(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceIntUnsigned() : NodeSocketInterfaceStandard(0) { }
 
 	int default_value() {
@@ -43045,8 +43566,9 @@ public:
 };
 
 class NodeSocketIntPercentage : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketIntPercentage(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketIntPercentage() : NodeSocketStandard(0) { }
 
 	int default_value() {
@@ -43059,8 +43581,9 @@ public:
 };
 
 class NodeSocketInterfaceIntPercentage : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceIntPercentage(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceIntPercentage() : NodeSocketInterfaceStandard(0) { }
 
 	int default_value() {
@@ -43089,8 +43612,9 @@ public:
 };
 
 class NodeSocketIntFactor : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketIntFactor(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketIntFactor() : NodeSocketStandard(0) { }
 
 	int default_value() {
@@ -43103,8 +43627,9 @@ public:
 };
 
 class NodeSocketInterfaceIntFactor : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceIntFactor(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceIntFactor() : NodeSocketInterfaceStandard(0) { }
 
 	int default_value() {
@@ -43133,8 +43658,9 @@ public:
 };
 
 class NodeSocketBool : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketBool(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketBool() : NodeSocketStandard(0) { }
 
 	bool default_value() {
@@ -43147,8 +43673,9 @@ public:
 };
 
 class NodeSocketInterfaceBool : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceBool(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceBool() : NodeSocketInterfaceStandard(0) { }
 
 	bool default_value() {
@@ -43161,8 +43688,9 @@ public:
 };
 
 class NodeSocketVector : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVector(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVector() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43175,8 +43703,9 @@ public:
 };
 
 class NodeSocketInterfaceVector : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVector(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVector() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43205,8 +43734,9 @@ public:
 };
 
 class NodeSocketVectorTranslation : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVectorTranslation(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVectorTranslation() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43219,8 +43749,9 @@ public:
 };
 
 class NodeSocketInterfaceVectorTranslation : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVectorTranslation(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVectorTranslation() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43249,8 +43780,9 @@ public:
 };
 
 class NodeSocketVectorDirection : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVectorDirection(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVectorDirection() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43263,8 +43795,9 @@ public:
 };
 
 class NodeSocketInterfaceVectorDirection : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVectorDirection(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVectorDirection() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43293,8 +43826,9 @@ public:
 };
 
 class NodeSocketVectorVelocity : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVectorVelocity(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVectorVelocity() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43307,8 +43841,9 @@ public:
 };
 
 class NodeSocketInterfaceVectorVelocity : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVectorVelocity(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVectorVelocity() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43337,8 +43872,9 @@ public:
 };
 
 class NodeSocketVectorAcceleration : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVectorAcceleration(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVectorAcceleration() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43351,8 +43887,9 @@ public:
 };
 
 class NodeSocketInterfaceVectorAcceleration : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVectorAcceleration(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVectorAcceleration() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43381,8 +43918,9 @@ public:
 };
 
 class NodeSocketVectorEuler : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVectorEuler(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVectorEuler() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43395,8 +43933,9 @@ public:
 };
 
 class NodeSocketInterfaceVectorEuler : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVectorEuler(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVectorEuler() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43425,8 +43964,9 @@ public:
 };
 
 class NodeSocketVectorXYZ : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVectorXYZ(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVectorXYZ() : NodeSocketStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43439,8 +43979,9 @@ public:
 };
 
 class NodeSocketInterfaceVectorXYZ : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceVectorXYZ(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceVectorXYZ() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT3 default_value() {
@@ -43469,8 +44010,9 @@ public:
 };
 
 class NodeSocketColor : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketColor(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketColor() : NodeSocketStandard(0) { }
 
 	VFLOAT4 default_value() {
@@ -43483,8 +44025,9 @@ public:
 };
 
 class NodeSocketInterfaceColor : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceColor(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceColor() : NodeSocketInterfaceStandard(0) { }
 
 	VFLOAT4 default_value() {
@@ -43497,8 +44040,9 @@ public:
 };
 
 class NodeSocketString : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketString(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketString() : NodeSocketStandard(0) { }
 
 	std::string default_value() {
@@ -43511,8 +44055,9 @@ public:
 };
 
 class NodeSocketInterfaceString : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceString(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceString() : NodeSocketInterfaceStandard(0) { }
 
 	std::string default_value() {
@@ -43525,26 +44070,30 @@ public:
 };
 
 class NodeSocketShader : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketShader(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketShader() : NodeSocketStandard(0) { }
 };
 
 class NodeSocketInterfaceShader : public NodeSocketInterfaceStandard {
-public:
+protected:
 	NodeSocketInterfaceShader(PyObject* pyobj) : NodeSocketInterfaceStandard(pyobj) {}
+public:
 	NodeSocketInterfaceShader() : NodeSocketInterfaceStandard(0) { }
 };
 
 class NodeSocketVirtual : public NodeSocketStandard {
-public:
+protected:
 	NodeSocketVirtual(PyObject* pyobj) : NodeSocketStandard(pyobj) {}
+public:
 	NodeSocketVirtual() : NodeSocketStandard(0) { }
 };
 
 class CompositorNodeTree : public NodeTree {
-public:
+protected:
 	CompositorNodeTree(PyObject* pyobj) : NodeTree(pyobj) {}
+public:
 	CompositorNodeTree() : NodeTree(0) { }
 
 	enum node_quality_items_enum {
@@ -43642,20 +44191,23 @@ public:
 };
 
 class ShaderNodeTree : public NodeTree {
-public:
+protected:
 	ShaderNodeTree(PyObject* pyobj) : NodeTree(pyobj) {}
+public:
 	ShaderNodeTree() : NodeTree(0) { }
 };
 
 class TextureNodeTree : public NodeTree {
-public:
+protected:
 	TextureNodeTree(PyObject* pyobj) : NodeTree(pyobj) {}
+public:
 	TextureNodeTree() : NodeTree(0) { }
 };
 
 class NodeFrame : public NodeInternal {
-public:
+protected:
 	NodeFrame(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	NodeFrame() : NodeInternal(0) { }
 
 	Text text();
@@ -43695,8 +44247,9 @@ public:
 };
 
 class NodeGroup : public NodeInternal {
-public:
+protected:
 	NodeGroup(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	NodeGroup() : NodeInternal(0) { }
 
 	NodeTree node_tree() {
@@ -43726,8 +44279,9 @@ public:
 };
 
 class NodeGroupInput : public NodeInternal {
-public:
+protected:
 	NodeGroupInput(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	NodeGroupInput() : NodeInternal(0) { }
 
 	PropertyGroup interface_value() {
@@ -43753,8 +44307,9 @@ public:
 };
 
 class NodeGroupOutput : public NodeInternal {
-public:
+protected:
 	NodeGroupOutput(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	NodeGroupOutput() : NodeInternal(0) { }
 
 	PropertyGroup interface_value() {
@@ -43788,8 +44343,9 @@ public:
 };
 
 class NodeReroute : public NodeInternal {
-public:
+protected:
 	NodeReroute(PyObject* pyobj) : NodeInternal(pyobj) {}
+public:
 	NodeReroute() : NodeInternal(0) { }
 
 	bool is_registered_node_type() {
@@ -43811,8 +44367,9 @@ public:
 };
 
 class ShaderNodeOutput : public ShaderNode {
-public:
+protected:
 	ShaderNodeOutput(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeOutput() : ShaderNode(0) { }
 
 	bool is_active_output() {
@@ -43842,8 +44399,9 @@ public:
 };
 
 class ShaderNodeMaterial : public ShaderNode {
-public:
+protected:
 	ShaderNodeMaterial(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeMaterial() : ShaderNode(0) { }
 
 	Material material() {
@@ -43893,8 +44451,9 @@ public:
 };
 
 class ShaderNodeRGB : public ShaderNode {
-public:
+protected:
 	ShaderNodeRGB(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeRGB() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -43916,8 +44475,9 @@ public:
 };
 
 class ShaderNodeValue : public ShaderNode {
-public:
+protected:
 	ShaderNodeValue(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeValue() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -43939,8 +44499,9 @@ public:
 };
 
 class ShaderNodeMixRGB : public ShaderNode {
-public:
+protected:
 	ShaderNodeMixRGB(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeMixRGB() : ShaderNode(0) { }
 
 	enum ramp_blend_items_enum {
@@ -44018,8 +44579,9 @@ public:
 };
 
 class ShaderNodeValToRGB : public ShaderNode {
-public:
+protected:
 	ShaderNodeValToRGB(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeValToRGB() : ShaderNode(0) { }
 
 	ColorRamp color_ramp() {
@@ -44045,8 +44607,9 @@ public:
 };
 
 class ShaderNodeRGBToBW : public ShaderNode {
-public:
+protected:
 	ShaderNodeRGBToBW(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeRGBToBW() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44068,8 +44631,9 @@ public:
 };
 
 class ShaderNodeTexture : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexture(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexture() : ShaderNode(0) { }
 
 	Texture texture() {
@@ -44103,8 +44667,9 @@ public:
 };
 
 class ShaderNodeNormal : public ShaderNode {
-public:
+protected:
 	ShaderNodeNormal(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeNormal() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44126,8 +44691,9 @@ public:
 };
 
 class ShaderNodeGamma : public ShaderNode {
-public:
+protected:
 	ShaderNodeGamma(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeGamma() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44149,8 +44715,9 @@ public:
 };
 
 class ShaderNodeBrightContrast : public ShaderNode {
-public:
+protected:
 	ShaderNodeBrightContrast(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBrightContrast() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44172,8 +44739,9 @@ public:
 };
 
 class ShaderNodeGeometry : public ShaderNode {
-public:
+protected:
 	ShaderNodeGeometry(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeGeometry() : ShaderNode(0) { }
 
 	std::string uv_layer() {
@@ -44211,8 +44779,9 @@ public:
 };
 
 class ShaderNodeMapping : public ShaderNode {
-public:
+protected:
 	ShaderNodeMapping(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeMapping() : ShaderNode(0) { }
 
 	enum prop_vect_type_items_enum {
@@ -44316,8 +44885,9 @@ public:
 };
 
 class ShaderNodeVectorCurve : public ShaderNode {
-public:
+protected:
 	ShaderNodeVectorCurve(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeVectorCurve() : ShaderNode(0) { }
 
 	CurveMapping mapping() {
@@ -44343,8 +44913,9 @@ public:
 };
 
 class ShaderNodeRGBCurve : public ShaderNode {
-public:
+protected:
 	ShaderNodeRGBCurve(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeRGBCurve() : ShaderNode(0) { }
 
 	CurveMapping mapping() {
@@ -44370,8 +44941,9 @@ public:
 };
 
 class ShaderNodeCameraData : public ShaderNode {
-public:
+protected:
 	ShaderNodeCameraData(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeCameraData() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44393,8 +44965,9 @@ public:
 };
 
 class ShaderNodeLampData : public ShaderNode {
-public:
+protected:
 	ShaderNodeLampData(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeLampData() : ShaderNode(0) { }
 
 	Object lamp_object();
@@ -44418,8 +44991,9 @@ public:
 };
 
 class ShaderNodeMath : public ShaderNode {
-public:
+protected:
 	ShaderNodeMath(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeMath() : ShaderNode(0) { }
 
 	enum node_math_items_enum {
@@ -44490,8 +45064,9 @@ public:
 };
 
 class ShaderNodeVectorMath : public ShaderNode {
-public:
+protected:
 	ShaderNodeVectorMath(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeVectorMath() : ShaderNode(0) { }
 
 	enum node_vec_math_items_enum {
@@ -44541,8 +45116,9 @@ public:
 };
 
 class ShaderNodeSqueeze : public ShaderNode {
-public:
+protected:
 	ShaderNodeSqueeze(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeSqueeze() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44564,8 +45140,9 @@ public:
 };
 
 class ShaderNodeExtendedMaterial : public ShaderNode {
-public:
+protected:
 	ShaderNodeExtendedMaterial(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeExtendedMaterial() : ShaderNode(0) { }
 
 	Material material() {
@@ -44615,8 +45192,9 @@ public:
 };
 
 class ShaderNodeInvert : public ShaderNode {
-public:
+protected:
 	ShaderNodeInvert(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeInvert() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44638,8 +45216,9 @@ public:
 };
 
 class ShaderNodeSeparateRGB : public ShaderNode {
-public:
+protected:
 	ShaderNodeSeparateRGB(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeSeparateRGB() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44661,8 +45240,9 @@ public:
 };
 
 class ShaderNodeCombineRGB : public ShaderNode {
-public:
+protected:
 	ShaderNodeCombineRGB(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeCombineRGB() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44684,8 +45264,9 @@ public:
 };
 
 class ShaderNodeHueSaturation : public ShaderNode {
-public:
+protected:
 	ShaderNodeHueSaturation(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeHueSaturation() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44707,8 +45288,9 @@ public:
 };
 
 class ShaderNodeOutputMaterial : public ShaderNode {
-public:
+protected:
 	ShaderNodeOutputMaterial(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeOutputMaterial() : ShaderNode(0) { }
 
 	bool is_active_output() {
@@ -44738,8 +45320,9 @@ public:
 };
 
 class ShaderNodeOutputLamp : public ShaderNode {
-public:
+protected:
 	ShaderNodeOutputLamp(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeOutputLamp() : ShaderNode(0) { }
 
 	bool is_active_output() {
@@ -44769,8 +45352,9 @@ public:
 };
 
 class ShaderNodeOutputWorld : public ShaderNode {
-public:
+protected:
 	ShaderNodeOutputWorld(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeOutputWorld() : ShaderNode(0) { }
 
 	bool is_active_output() {
@@ -44800,8 +45384,9 @@ public:
 };
 
 class ShaderNodeOutputLineStyle : public ShaderNode {
-public:
+protected:
 	ShaderNodeOutputLineStyle(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeOutputLineStyle() : ShaderNode(0) { }
 
 	bool is_active_output() {
@@ -44887,8 +45472,9 @@ public:
 };
 
 class ShaderNodeFresnel : public ShaderNode {
-public:
+protected:
 	ShaderNodeFresnel(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeFresnel() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44910,8 +45496,9 @@ public:
 };
 
 class ShaderNodeLayerWeight : public ShaderNode {
-public:
+protected:
 	ShaderNodeLayerWeight(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeLayerWeight() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44933,8 +45520,9 @@ public:
 };
 
 class ShaderNodeMixShader : public ShaderNode {
-public:
+protected:
 	ShaderNodeMixShader(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeMixShader() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44956,8 +45544,9 @@ public:
 };
 
 class ShaderNodeAddShader : public ShaderNode {
-public:
+protected:
 	ShaderNodeAddShader(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeAddShader() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -44979,8 +45568,9 @@ public:
 };
 
 class ShaderNodeAttribute : public ShaderNode {
-public:
+protected:
 	ShaderNodeAttribute(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeAttribute() : ShaderNode(0) { }
 
 	std::string attribute_name() {
@@ -45010,8 +45600,9 @@ public:
 };
 
 class ShaderNodeAmbientOcclusion : public ShaderNode {
-public:
+protected:
 	ShaderNodeAmbientOcclusion(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeAmbientOcclusion() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45033,8 +45624,9 @@ public:
 };
 
 class ShaderNodeBackground : public ShaderNode {
-public:
+protected:
 	ShaderNodeBackground(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBackground() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45056,8 +45648,9 @@ public:
 };
 
 class ShaderNodeHoldout : public ShaderNode {
-public:
+protected:
 	ShaderNodeHoldout(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeHoldout() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45079,8 +45672,9 @@ public:
 };
 
 class ShaderNodeBsdfAnisotropic : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfAnisotropic(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfAnisotropic() : ShaderNode(0) { }
 
 	enum node_anisotropic_items_enum {
@@ -45127,8 +45721,9 @@ public:
 };
 
 class ShaderNodeBsdfDiffuse : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfDiffuse(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfDiffuse() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45150,8 +45745,9 @@ public:
 };
 
 class ShaderNodeBsdfGlossy : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfGlossy(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfGlossy() : ShaderNode(0) { }
 
 	enum node_glossy_items_enum {
@@ -45199,8 +45795,9 @@ public:
 };
 
 class ShaderNodeBsdfGlass : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfGlass(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfGlass() : ShaderNode(0) { }
 
 	enum node_glass_items_enum {
@@ -45247,8 +45844,9 @@ public:
 };
 
 class ShaderNodeBsdfRefraction : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfRefraction(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfRefraction() : ShaderNode(0) { }
 
 	enum node_glass_items_enum {
@@ -45295,8 +45893,9 @@ public:
 };
 
 class ShaderNodeBsdfTranslucent : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfTranslucent(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfTranslucent() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45318,8 +45917,9 @@ public:
 };
 
 class ShaderNodeBsdfTransparent : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfTransparent(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfTransparent() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45341,8 +45941,9 @@ public:
 };
 
 class ShaderNodeBsdfVelvet : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfVelvet(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfVelvet() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45364,8 +45965,9 @@ public:
 };
 
 class ShaderNodeBsdfToon : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfToon(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfToon() : ShaderNode(0) { }
 
 	enum node_toon_items_enum {
@@ -45411,8 +46013,9 @@ public:
 };
 
 class ShaderNodeBsdfHair : public ShaderNode {
-public:
+protected:
 	ShaderNodeBsdfHair(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBsdfHair() : ShaderNode(0) { }
 
 	enum node_hair_items_enum {
@@ -45458,8 +46061,9 @@ public:
 };
 
 class ShaderNodeSubsurfaceScattering : public ShaderNode {
-public:
+protected:
 	ShaderNodeSubsurfaceScattering(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeSubsurfaceScattering() : ShaderNode(0) { }
 
 	enum prop_subsurface_falloff_items_enum {
@@ -45505,8 +46109,9 @@ public:
 };
 
 class ShaderNodeVolumeAbsorption : public ShaderNode {
-public:
+protected:
 	ShaderNodeVolumeAbsorption(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeVolumeAbsorption() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45528,8 +46133,9 @@ public:
 };
 
 class ShaderNodeVolumeScatter : public ShaderNode {
-public:
+protected:
 	ShaderNodeVolumeScatter(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeVolumeScatter() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45551,8 +46157,9 @@ public:
 };
 
 class ShaderNodeEmission : public ShaderNode {
-public:
+protected:
 	ShaderNodeEmission(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeEmission() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45574,8 +46181,9 @@ public:
 };
 
 class ShaderNodeNewGeometry : public ShaderNode {
-public:
+protected:
 	ShaderNodeNewGeometry(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeNewGeometry() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45597,8 +46205,9 @@ public:
 };
 
 class ShaderNodeLightPath : public ShaderNode {
-public:
+protected:
 	ShaderNodeLightPath(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeLightPath() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45620,8 +46229,9 @@ public:
 };
 
 class ShaderNodeLightFalloff : public ShaderNode {
-public:
+protected:
 	ShaderNodeLightFalloff(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeLightFalloff() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45643,8 +46253,9 @@ public:
 };
 
 class ShaderNodeObjectInfo : public ShaderNode {
-public:
+protected:
 	ShaderNodeObjectInfo(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeObjectInfo() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45666,8 +46277,9 @@ public:
 };
 
 class ShaderNodeParticleInfo : public ShaderNode {
-public:
+protected:
 	ShaderNodeParticleInfo(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeParticleInfo() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45689,8 +46301,9 @@ public:
 };
 
 class ShaderNodeHairInfo : public ShaderNode {
-public:
+protected:
 	ShaderNodeHairInfo(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeHairInfo() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45712,8 +46325,9 @@ public:
 };
 
 class ShaderNodeWireframe : public ShaderNode {
-public:
+protected:
 	ShaderNodeWireframe(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeWireframe() : ShaderNode(0) { }
 
 	bool use_pixel_size() {
@@ -45743,8 +46357,9 @@ public:
 };
 
 class ShaderNodeWavelength : public ShaderNode {
-public:
+protected:
 	ShaderNodeWavelength(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeWavelength() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45766,8 +46381,9 @@ public:
 };
 
 class ShaderNodeBlackbody : public ShaderNode {
-public:
+protected:
 	ShaderNodeBlackbody(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBlackbody() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -45789,8 +46405,9 @@ public:
 };
 
 class ShaderNodeBump : public ShaderNode {
-public:
+protected:
 	ShaderNodeBump(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeBump() : ShaderNode(0) { }
 
 	bool invert() {
@@ -45820,8 +46437,9 @@ public:
 };
 
 class ShaderNodeNormalMap : public ShaderNode {
-public:
+protected:
 	ShaderNodeNormalMap(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeNormalMap() : ShaderNode(0) { }
 
 	enum prop_space_items_enum {
@@ -45878,8 +46496,9 @@ public:
 };
 
 class ShaderNodeTangent : public ShaderNode {
-public:
+protected:
 	ShaderNodeTangent(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTangent() : ShaderNode(0) { }
 
 	enum prop_direction_type_items_enum {
@@ -45958,8 +46577,9 @@ public:
 };
 
 class ShaderNodeScript : public ShaderNode {
-public:
+protected:
 	ShaderNodeScript(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeScript() : ShaderNode(0) { }
 
 	Text script();
@@ -46039,8 +46659,9 @@ public:
 };
 
 class ShaderNodeTexImage : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexImage(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexImage() : ShaderNode(0) { }
 
 	Image image() {
@@ -46162,8 +46783,9 @@ public:
 };
 
 class ShaderNodeTexEnvironment : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexEnvironment(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexEnvironment() : ShaderNode(0) { }
 
 	Image image() {
@@ -46249,8 +46871,9 @@ public:
 };
 
 class ShaderNodeTexSky : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexSky(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexSky() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46328,8 +46951,9 @@ public:
 };
 
 class ShaderNodeTexGradient : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexGradient(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexGradient() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46388,8 +47012,9 @@ public:
 };
 
 class ShaderNodeTexNoise : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexNoise(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexNoise() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46419,8 +47044,9 @@ public:
 };
 
 class ShaderNodeTexMagic : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexMagic(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexMagic() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46458,8 +47084,9 @@ public:
 };
 
 class ShaderNodeTexWave : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexWave(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexWave() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46513,8 +47140,9 @@ public:
 };
 
 class ShaderNodeTexMusgrave : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexMusgrave(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexMusgrave() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46571,8 +47199,9 @@ public:
 };
 
 class ShaderNodeTexVoronoi : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexVoronoi(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexVoronoi() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46626,8 +47255,9 @@ public:
 };
 
 class ShaderNodeTexChecker : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexChecker(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexChecker() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46657,8 +47287,9 @@ public:
 };
 
 class ShaderNodeTexBrick : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexBrick(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexBrick() : ShaderNode(0) { }
 
 	TexMapping texture_mapping() {
@@ -46720,8 +47351,9 @@ public:
 };
 
 class ShaderNodeTexCoord : public ShaderNode {
-public:
+protected:
 	ShaderNodeTexCoord(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeTexCoord() : ShaderNode(0) { }
 
 	Object object_value();
@@ -46753,8 +47385,9 @@ public:
 };
 
 class ShaderNodeVectorTransform : public ShaderNode {
-public:
+protected:
 	ShaderNodeVectorTransform(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeVectorTransform() : ShaderNode(0) { }
 
 	enum prop_vect_type_items_enum {
@@ -46834,8 +47467,9 @@ public:
 };
 
 class ShaderNodeSeparateHSV : public ShaderNode {
-public:
+protected:
 	ShaderNodeSeparateHSV(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeSeparateHSV() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -46857,8 +47491,9 @@ public:
 };
 
 class ShaderNodeCombineHSV : public ShaderNode {
-public:
+protected:
 	ShaderNodeCombineHSV(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeCombineHSV() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -46880,8 +47515,9 @@ public:
 };
 
 class ShaderNodeUVMap : public ShaderNode {
-public:
+protected:
 	ShaderNodeUVMap(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeUVMap() : ShaderNode(0) { }
 
 	bool from_dupli() {
@@ -46919,8 +47555,9 @@ public:
 };
 
 class ShaderNodeUVAlongStroke : public ShaderNode {
-public:
+protected:
 	ShaderNodeUVAlongStroke(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeUVAlongStroke() : ShaderNode(0) { }
 
 	bool use_tips() {
@@ -46950,8 +47587,9 @@ public:
 };
 
 class ShaderNodeSeparateXYZ : public ShaderNode {
-public:
+protected:
 	ShaderNodeSeparateXYZ(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeSeparateXYZ() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -46973,8 +47611,9 @@ public:
 };
 
 class ShaderNodeCombineXYZ : public ShaderNode {
-public:
+protected:
 	ShaderNodeCombineXYZ(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeCombineXYZ() : ShaderNode(0) { }
 
 	bool is_registered_node_type() {
@@ -46996,8 +47635,9 @@ public:
 };
 
 class CompositorNodeViewer : public CompositorNode {
-public:
+protected:
 	CompositorNodeViewer(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeViewer() : CompositorNode(0) { }
 
 	enum tileorder_items_enum {
@@ -47069,8 +47709,9 @@ public:
 };
 
 class CompositorNodeRGB : public CompositorNode {
-public:
+protected:
 	CompositorNodeRGB(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeRGB() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47092,8 +47733,9 @@ public:
 };
 
 class CompositorNodeValue : public CompositorNode {
-public:
+protected:
 	CompositorNodeValue(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeValue() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47115,8 +47757,9 @@ public:
 };
 
 class CompositorNodeMixRGB : public CompositorNode {
-public:
+protected:
 	CompositorNodeMixRGB(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMixRGB() : CompositorNode(0) { }
 
 	enum ramp_blend_items_enum {
@@ -47194,8 +47837,9 @@ public:
 };
 
 class CompositorNodeValToRGB : public CompositorNode {
-public:
+protected:
 	CompositorNodeValToRGB(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeValToRGB() : CompositorNode(0) { }
 
 	ColorRamp color_ramp() {
@@ -47221,8 +47865,9 @@ public:
 };
 
 class CompositorNodeRGBToBW : public CompositorNode {
-public:
+protected:
 	CompositorNodeRGBToBW(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeRGBToBW() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47244,8 +47889,9 @@ public:
 };
 
 class CompositorNodeNormal : public CompositorNode {
-public:
+protected:
 	CompositorNodeNormal(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeNormal() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47267,8 +47913,9 @@ public:
 };
 
 class CompositorNodeCurveVec : public CompositorNode {
-public:
+protected:
 	CompositorNodeCurveVec(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCurveVec() : CompositorNode(0) { }
 
 	CurveMapping mapping() {
@@ -47294,8 +47941,9 @@ public:
 };
 
 class CompositorNodeCurveRGB : public CompositorNode {
-public:
+protected:
 	CompositorNodeCurveRGB(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCurveRGB() : CompositorNode(0) { }
 
 	CurveMapping mapping() {
@@ -47321,8 +47969,9 @@ public:
 };
 
 class CompositorNodeAlphaOver : public CompositorNode {
-public:
+protected:
 	CompositorNodeAlphaOver(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeAlphaOver() : CompositorNode(0) { }
 
 	bool use_premultiply() {
@@ -47360,8 +48009,9 @@ public:
 };
 
 class CompositorNodeBlur : public CompositorNode {
-public:
+protected:
 	CompositorNodeBlur(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeBlur() : CompositorNode(0) { }
 
 	bool use_variable_size() {
@@ -47510,8 +48160,9 @@ public:
 };
 
 class CompositorNodeFilter : public CompositorNode {
-public:
+protected:
 	CompositorNodeFilter(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeFilter() : CompositorNode(0) { }
 
 	enum node_filter_items_enum {
@@ -47562,8 +48213,9 @@ public:
 };
 
 class CompositorNodeMapValue : public CompositorNode {
-public:
+protected:
 	CompositorNodeMapValue(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMapValue() : CompositorNode(0) { }
 
 	std::array<float, 1> offset() {
@@ -47633,8 +48285,9 @@ public:
 };
 
 class CompositorNodeMapRange : public CompositorNode {
-public:
+protected:
 	CompositorNodeMapRange(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMapRange() : CompositorNode(0) { }
 
 	bool use_clamp() {
@@ -47664,8 +48317,9 @@ public:
 };
 
 class CompositorNodeTime : public CompositorNode {
-public:
+protected:
 	CompositorNodeTime(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeTime() : CompositorNode(0) { }
 
 	CurveMapping curve() {
@@ -47707,8 +48361,9 @@ public:
 };
 
 class CompositorNodeVecBlur : public CompositorNode {
-public:
+protected:
 	CompositorNodeVecBlur(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeVecBlur() : CompositorNode(0) { }
 
 	int samples() {
@@ -47770,8 +48425,9 @@ public:
 };
 
 class CompositorNodeSepRGBA : public CompositorNode {
-public:
+protected:
 	CompositorNodeSepRGBA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSepRGBA() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47793,8 +48449,9 @@ public:
 };
 
 class CompositorNodeSepHSVA : public CompositorNode {
-public:
+protected:
 	CompositorNodeSepHSVA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSepHSVA() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47816,8 +48473,9 @@ public:
 };
 
 class CompositorNodeSetAlpha : public CompositorNode {
-public:
+protected:
 	CompositorNodeSetAlpha(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSetAlpha() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -47839,8 +48497,9 @@ public:
 };
 
 class CompositorNodeHueSat : public CompositorNode {
-public:
+protected:
 	CompositorNodeHueSat(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeHueSat() : CompositorNode(0) { }
 
 	float color_hue() {
@@ -47886,8 +48545,9 @@ public:
 };
 
 class CompositorNodeImage : public CompositorNode {
-public:
+protected:
 	CompositorNodeImage(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeImage() : CompositorNode(0) { }
 
 	Image image() {
@@ -48023,8 +48683,9 @@ public:
 };
 
 class CompositorNodeRLayers : public CompositorNode {
-public:
+protected:
 	CompositorNodeRLayers(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeRLayers() : CompositorNode(0) { }
 
 	Scene scene();
@@ -48071,8 +48732,9 @@ public:
 };
 
 class CompositorNodeComposite : public CompositorNode {
-public:
+protected:
 	CompositorNodeComposite(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeComposite() : CompositorNode(0) { }
 
 	bool use_alpha() {
@@ -48102,8 +48764,9 @@ public:
 };
 
 class CompositorNodeOutputFile : public CompositorNode {
-public:
+protected:
 	CompositorNodeOutputFile(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeOutputFile() : CompositorNode(0) { }
 
 	std::string base_path() {
@@ -48147,8 +48810,9 @@ public:
 };
 
 class CompositorNodeTexture : public CompositorNode {
-public:
+protected:
 	CompositorNodeTexture(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeTexture() : CompositorNode(0) { }
 
 	Texture texture() {
@@ -48182,8 +48846,9 @@ public:
 };
 
 class CompositorNodeTranslate : public CompositorNode {
-public:
+protected:
 	CompositorNodeTranslate(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeTranslate() : CompositorNode(0) { }
 
 	bool use_relative() {
@@ -48239,8 +48904,9 @@ public:
 };
 
 class CompositorNodeZcombine : public CompositorNode {
-public:
+protected:
 	CompositorNodeZcombine(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeZcombine() : CompositorNode(0) { }
 
 	bool use_alpha() {
@@ -48278,8 +48944,9 @@ public:
 };
 
 class CompositorNodeCombRGBA : public CompositorNode {
-public:
+protected:
 	CompositorNodeCombRGBA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCombRGBA() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -48301,8 +48968,9 @@ public:
 };
 
 class CompositorNodeDilateErode : public CompositorNode {
-public:
+protected:
 	CompositorNodeDilateErode(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDilateErode() : CompositorNode(0) { }
 
 	enum mode_items_enum {
@@ -48394,8 +49062,9 @@ public:
 };
 
 class CompositorNodeInpaint : public CompositorNode {
-public:
+protected:
 	CompositorNodeInpaint(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeInpaint() : CompositorNode(0) { }
 
 	int distance() {
@@ -48425,8 +49094,9 @@ public:
 };
 
 class CompositorNodeDespeckle : public CompositorNode {
-public:
+protected:
 	CompositorNodeDespeckle(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDespeckle() : CompositorNode(0) { }
 
 	float threshold() {
@@ -48464,8 +49134,9 @@ public:
 };
 
 class CompositorNodeRotate : public CompositorNode {
-public:
+protected:
 	CompositorNodeRotate(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeRotate() : CompositorNode(0) { }
 
 	enum node_sampler_type_items_enum {
@@ -48512,8 +49183,9 @@ public:
 };
 
 class CompositorNodeScale : public CompositorNode {
-public:
+protected:
 	CompositorNodeScale(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeScale() : CompositorNode(0) { }
 
 	enum space_items_enum {
@@ -48602,8 +49274,9 @@ public:
 };
 
 class CompositorNodeSepYCCA : public CompositorNode {
-public:
+protected:
 	CompositorNodeSepYCCA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSepYCCA() : CompositorNode(0) { }
 
 	enum node_ycc_items_enum {
@@ -48650,8 +49323,9 @@ public:
 };
 
 class CompositorNodeCombYCCA : public CompositorNode {
-public:
+protected:
 	CompositorNodeCombYCCA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCombYCCA() : CompositorNode(0) { }
 
 	enum node_ycc_items_enum {
@@ -48698,8 +49372,9 @@ public:
 };
 
 class CompositorNodeSepYUVA : public CompositorNode {
-public:
+protected:
 	CompositorNodeSepYUVA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSepYUVA() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -48721,8 +49396,9 @@ public:
 };
 
 class CompositorNodeCombYUVA : public CompositorNode {
-public:
+protected:
 	CompositorNodeCombYUVA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCombYUVA() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -48744,8 +49420,9 @@ public:
 };
 
 class CompositorNodeDiffMatte : public CompositorNode {
-public:
+protected:
 	CompositorNodeDiffMatte(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDiffMatte() : CompositorNode(0) { }
 
 	float tolerance() {
@@ -48783,8 +49460,9 @@ public:
 };
 
 class CompositorNodeColorSpill : public CompositorNode {
-public:
+protected:
 	CompositorNodeColorSpill(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeColorSpill() : CompositorNode(0) { }
 
 	enum channel_items_enum {
@@ -48920,8 +49598,9 @@ public:
 };
 
 class CompositorNodeChromaMatte : public CompositorNode {
-public:
+protected:
 	CompositorNodeChromaMatte(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeChromaMatte() : CompositorNode(0) { }
 
 	float tolerance() {
@@ -48983,8 +49662,9 @@ public:
 };
 
 class CompositorNodeChannelMatte : public CompositorNode {
-public:
+protected:
 	CompositorNodeChannelMatte(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeChannelMatte() : CompositorNode(0) { }
 
 	enum color_space_items_enum {
@@ -49105,8 +49785,9 @@ public:
 };
 
 class CompositorNodeFlip : public CompositorNode {
-public:
+protected:
 	CompositorNodeFlip(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeFlip() : CompositorNode(0) { }
 
 	enum node_flip_items_enum {
@@ -49153,8 +49834,9 @@ public:
 };
 
 class CompositorNodeSplitViewer : public CompositorNode {
-public:
+protected:
 	CompositorNodeSplitViewer(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSplitViewer() : CompositorNode(0) { }
 
 	enum axis_items_enum {
@@ -49208,8 +49890,9 @@ public:
 };
 
 class CompositorNodeMapUV : public CompositorNode {
-public:
+protected:
 	CompositorNodeMapUV(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMapUV() : CompositorNode(0) { }
 
 	int alpha() {
@@ -49239,8 +49922,9 @@ public:
 };
 
 class CompositorNodeIDMask : public CompositorNode {
-public:
+protected:
 	CompositorNodeIDMask(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeIDMask() : CompositorNode(0) { }
 
 	int index() {
@@ -49278,8 +49962,9 @@ public:
 };
 
 class CompositorNodeDoubleEdgeMask : public CompositorNode {
-public:
+protected:
 	CompositorNodeDoubleEdgeMask(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDoubleEdgeMask() : CompositorNode(0) { }
 
 	enum InnerEdgeMode_items_enum {
@@ -49349,8 +50034,9 @@ public:
 };
 
 class CompositorNodeDefocus : public CompositorNode {
-public:
+protected:
 	CompositorNodeDefocus(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDefocus() : CompositorNode(0) { }
 
 	Scene scene();
@@ -49467,8 +50153,9 @@ public:
 };
 
 class CompositorNodeDisplace : public CompositorNode {
-public:
+protected:
 	CompositorNodeDisplace(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDisplace() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -49490,8 +50177,9 @@ public:
 };
 
 class CompositorNodeCombHSVA : public CompositorNode {
-public:
+protected:
 	CompositorNodeCombHSVA(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCombHSVA() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -49513,8 +50201,9 @@ public:
 };
 
 class CompositorNodeMath : public CompositorNode {
-public:
+protected:
 	CompositorNodeMath(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMath() : CompositorNode(0) { }
 
 	enum node_math_items_enum {
@@ -49585,8 +50274,9 @@ public:
 };
 
 class CompositorNodeLumaMatte : public CompositorNode {
-public:
+protected:
 	CompositorNodeLumaMatte(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeLumaMatte() : CompositorNode(0) { }
 
 	float limit_max() {
@@ -49624,8 +50314,9 @@ public:
 };
 
 class CompositorNodeBrightContrast : public CompositorNode {
-public:
+protected:
 	CompositorNodeBrightContrast(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeBrightContrast() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -49647,8 +50338,9 @@ public:
 };
 
 class CompositorNodeGamma : public CompositorNode {
-public:
+protected:
 	CompositorNodeGamma(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeGamma() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -49670,8 +50362,9 @@ public:
 };
 
 class CompositorNodeInvert : public CompositorNode {
-public:
+protected:
 	CompositorNodeInvert(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeInvert() : CompositorNode(0) { }
 
 	bool invert_rgb() {
@@ -49709,8 +50402,9 @@ public:
 };
 
 class CompositorNodeNormalize : public CompositorNode {
-public:
+protected:
 	CompositorNodeNormalize(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeNormalize() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -49732,8 +50426,9 @@ public:
 };
 
 class CompositorNodeCrop : public CompositorNode {
-public:
+protected:
 	CompositorNodeCrop(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCrop() : CompositorNode(0) { }
 
 	bool use_crop_size() {
@@ -49835,8 +50530,9 @@ public:
 };
 
 class CompositorNodeDBlur : public CompositorNode {
-public:
+protected:
 	CompositorNodeDBlur(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDBlur() : CompositorNode(0) { }
 
 	int iterations() {
@@ -49922,8 +50618,9 @@ public:
 };
 
 class CompositorNodeBilateralblur : public CompositorNode {
-public:
+protected:
 	CompositorNodeBilateralblur(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeBilateralblur() : CompositorNode(0) { }
 
 	int iterations() {
@@ -49969,8 +50666,9 @@ public:
 };
 
 class CompositorNodePremulKey : public CompositorNode {
-public:
+protected:
 	CompositorNodePremulKey(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodePremulKey() : CompositorNode(0) { }
 
 	enum type_items_enum {
@@ -50016,8 +50714,9 @@ public:
 };
 
 class CompositorNodeGlare : public CompositorNode {
-public:
+protected:
 	CompositorNodeGlare(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeGlare() : CompositorNode(0) { }
 
 	enum type_items_enum {
@@ -50162,8 +50861,9 @@ public:
 };
 
 class CompositorNodeTonemap : public CompositorNode {
-public:
+protected:
 	CompositorNodeTonemap(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeTonemap() : CompositorNode(0) { }
 
 	enum type_items_enum {
@@ -50265,8 +50965,9 @@ public:
 };
 
 class CompositorNodeLensdist : public CompositorNode {
-public:
+protected:
 	CompositorNodeLensdist(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeLensdist() : CompositorNode(0) { }
 
 	bool use_projector() {
@@ -50312,8 +51013,9 @@ public:
 };
 
 class CompositorNodeLevels : public CompositorNode {
-public:
+protected:
 	CompositorNodeLevels(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeLevels() : CompositorNode(0) { }
 
 	enum channel_items_enum {
@@ -50362,8 +51064,9 @@ public:
 };
 
 class CompositorNodeColorMatte : public CompositorNode {
-public:
+protected:
 	CompositorNodeColorMatte(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeColorMatte() : CompositorNode(0) { }
 
 	float color_hue() {
@@ -50409,8 +51112,9 @@ public:
 };
 
 class CompositorNodeDistanceMatte : public CompositorNode {
-public:
+protected:
 	CompositorNodeDistanceMatte(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeDistanceMatte() : CompositorNode(0) { }
 
 	enum color_space_items_enum {
@@ -50472,8 +51176,9 @@ public:
 };
 
 class CompositorNodeColorBalance : public CompositorNode {
-public:
+protected:
 	CompositorNodeColorBalance(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeColorBalance() : CompositorNode(0) { }
 
 	enum type_items_enum {
@@ -50567,8 +51272,9 @@ public:
 };
 
 class CompositorNodeHueCorrect : public CompositorNode {
-public:
+protected:
 	CompositorNodeHueCorrect(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeHueCorrect() : CompositorNode(0) { }
 
 	CurveMapping mapping() {
@@ -50594,8 +51300,9 @@ public:
 };
 
 class CompositorNodeMovieClip : public CompositorNode {
-public:
+protected:
 	CompositorNodeMovieClip(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMovieClip() : CompositorNode(0) { }
 
 	MovieClip clip();
@@ -50619,8 +51326,9 @@ public:
 };
 
 class CompositorNodeTransform : public CompositorNode {
-public:
+protected:
 	CompositorNodeTransform(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeTransform() : CompositorNode(0) { }
 
 	enum node_sampler_type_items_enum {
@@ -50667,8 +51375,9 @@ public:
 };
 
 class CompositorNodeStabilize : public CompositorNode {
-public:
+protected:
 	CompositorNodeStabilize(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeStabilize() : CompositorNode(0) { }
 
 	MovieClip clip();
@@ -50717,8 +51426,9 @@ public:
 };
 
 class CompositorNodeMovieDistortion : public CompositorNode {
-public:
+protected:
 	CompositorNodeMovieDistortion(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMovieDistortion() : CompositorNode(0) { }
 
 	MovieClip clip();
@@ -50766,8 +51476,9 @@ public:
 };
 
 class CompositorNodeBoxMask : public CompositorNode {
-public:
+protected:
 	CompositorNodeBoxMask(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeBoxMask() : CompositorNode(0) { }
 
 	enum node_masktype_items_enum {
@@ -50855,8 +51566,9 @@ public:
 };
 
 class CompositorNodeEllipseMask : public CompositorNode {
-public:
+protected:
 	CompositorNodeEllipseMask(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeEllipseMask() : CompositorNode(0) { }
 
 	enum node_masktype_items_enum {
@@ -50944,8 +51656,9 @@ public:
 };
 
 class CompositorNodeBokehImage : public CompositorNode {
-public:
+protected:
 	CompositorNodeBokehImage(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeBokehImage() : CompositorNode(0) { }
 
 	float angle() {
@@ -51007,8 +51720,9 @@ public:
 };
 
 class CompositorNodeBokehBlur : public CompositorNode {
-public:
+protected:
 	CompositorNodeBokehBlur(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeBokehBlur() : CompositorNode(0) { }
 
 	bool use_variable_size() {
@@ -51046,8 +51760,9 @@ public:
 };
 
 class CompositorNodeSwitch : public CompositorNode {
-public:
+protected:
 	CompositorNodeSwitch(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSwitch() : CompositorNode(0) { }
 
 	bool check() {
@@ -51077,8 +51792,9 @@ public:
 };
 
 class CompositorNodeSwitchView : public CompositorNode {
-public:
+protected:
 	CompositorNodeSwitchView(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSwitchView() : CompositorNode(0) { }
 
 	bool check() {
@@ -51108,8 +51824,9 @@ public:
 };
 
 class CompositorNodeColorCorrection : public CompositorNode {
-public:
+protected:
 	CompositorNodeColorCorrection(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeColorCorrection() : CompositorNode(0) { }
 
 	bool red() {
@@ -51331,8 +52048,9 @@ public:
 };
 
 class CompositorNodeMask : public CompositorNode {
-public:
+protected:
 	CompositorNodeMask(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeMask() : CompositorNode(0) { }
 
 	Mask mask();
@@ -51437,8 +52155,9 @@ public:
 };
 
 class CompositorNodeKeyingScreen : public CompositorNode {
-public:
+protected:
 	CompositorNodeKeyingScreen(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeKeyingScreen() : CompositorNode(0) { }
 
 	MovieClip clip();
@@ -51470,8 +52189,9 @@ public:
 };
 
 class CompositorNodeKeying : public CompositorNode {
-public:
+protected:
 	CompositorNodeKeying(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeKeying() : CompositorNode(0) { }
 
 	float screen_balance() {
@@ -51609,8 +52329,9 @@ public:
 };
 
 class CompositorNodeTrackPos : public CompositorNode {
-public:
+protected:
 	CompositorNodeTrackPos(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeTrackPos() : CompositorNode(0) { }
 
 	MovieClip clip();
@@ -51684,8 +52405,9 @@ public:
 };
 
 class CompositorNodePixelate : public CompositorNode {
-public:
+protected:
 	CompositorNodePixelate(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodePixelate() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -51707,8 +52429,9 @@ public:
 };
 
 class CompositorNodePlaneTrackDeform : public CompositorNode {
-public:
+protected:
 	CompositorNodePlaneTrackDeform(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodePlaneTrackDeform() : CompositorNode(0) { }
 
 	MovieClip clip();
@@ -51772,8 +52495,9 @@ public:
 };
 
 class CompositorNodeCornerPin : public CompositorNode {
-public:
+protected:
 	CompositorNodeCornerPin(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeCornerPin() : CompositorNode(0) { }
 
 	bool is_registered_node_type() {
@@ -51795,8 +52519,9 @@ public:
 };
 
 class CompositorNodeSunBeams : public CompositorNode {
-public:
+protected:
 	CompositorNodeSunBeams(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeSunBeams() : CompositorNode(0) { }
 
 	VFLOAT2 source() {
@@ -51834,8 +52559,9 @@ public:
 };
 
 class TextureNodeOutput : public TextureNode {
-public:
+protected:
 	TextureNodeOutput(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeOutput() : TextureNode(0) { }
 
 	std::string filepath() {
@@ -51865,8 +52591,9 @@ public:
 };
 
 class TextureNodeChecker : public TextureNode {
-public:
+protected:
 	TextureNodeChecker(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeChecker() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -51888,8 +52615,9 @@ public:
 };
 
 class TextureNodeTexture : public TextureNode {
-public:
+protected:
 	TextureNodeTexture(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexture() : TextureNode(0) { }
 
 	Texture texture() {
@@ -51923,8 +52651,9 @@ public:
 };
 
 class TextureNodeBricks : public TextureNode {
-public:
+protected:
 	TextureNodeBricks(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeBricks() : TextureNode(0) { }
 
 	float offset() {
@@ -51978,8 +52707,9 @@ public:
 };
 
 class TextureNodeMath : public TextureNode {
-public:
+protected:
 	TextureNodeMath(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeMath() : TextureNode(0) { }
 
 	enum node_math_items_enum {
@@ -52050,8 +52780,9 @@ public:
 };
 
 class TextureNodeMixRGB : public TextureNode {
-public:
+protected:
 	TextureNodeMixRGB(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeMixRGB() : TextureNode(0) { }
 
 	enum ramp_blend_items_enum {
@@ -52129,8 +52860,9 @@ public:
 };
 
 class TextureNodeRGBToBW : public TextureNode {
-public:
+protected:
 	TextureNodeRGBToBW(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeRGBToBW() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52152,8 +52884,9 @@ public:
 };
 
 class TextureNodeValToRGB : public TextureNode {
-public:
+protected:
 	TextureNodeValToRGB(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeValToRGB() : TextureNode(0) { }
 
 	ColorRamp color_ramp() {
@@ -52179,8 +52912,9 @@ public:
 };
 
 class TextureNodeImage : public TextureNode {
-public:
+protected:
 	TextureNodeImage(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeImage() : TextureNode(0) { }
 
 	Image image() {
@@ -52210,8 +52944,9 @@ public:
 };
 
 class TextureNodeCurveRGB : public TextureNode {
-public:
+protected:
 	TextureNodeCurveRGB(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeCurveRGB() : TextureNode(0) { }
 
 	CurveMapping mapping() {
@@ -52237,8 +52972,9 @@ public:
 };
 
 class TextureNodeInvert : public TextureNode {
-public:
+protected:
 	TextureNodeInvert(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeInvert() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52260,8 +52996,9 @@ public:
 };
 
 class TextureNodeHueSaturation : public TextureNode {
-public:
+protected:
 	TextureNodeHueSaturation(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeHueSaturation() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52283,8 +53020,9 @@ public:
 };
 
 class TextureNodeCurveTime : public TextureNode {
-public:
+protected:
 	TextureNodeCurveTime(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeCurveTime() : TextureNode(0) { }
 
 	CurveMapping curve() {
@@ -52326,8 +53064,9 @@ public:
 };
 
 class TextureNodeRotate : public TextureNode {
-public:
+protected:
 	TextureNodeRotate(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeRotate() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52349,8 +53088,9 @@ public:
 };
 
 class TextureNodeViewer : public TextureNode {
-public:
+protected:
 	TextureNodeViewer(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeViewer() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52372,8 +53112,9 @@ public:
 };
 
 class TextureNodeTranslate : public TextureNode {
-public:
+protected:
 	TextureNodeTranslate(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTranslate() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52395,8 +53136,9 @@ public:
 };
 
 class TextureNodeCoordinates : public TextureNode {
-public:
+protected:
 	TextureNodeCoordinates(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeCoordinates() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52418,8 +53160,9 @@ public:
 };
 
 class TextureNodeDistance : public TextureNode {
-public:
+protected:
 	TextureNodeDistance(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeDistance() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52441,8 +53184,9 @@ public:
 };
 
 class TextureNodeCompose : public TextureNode {
-public:
+protected:
 	TextureNodeCompose(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeCompose() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52464,8 +53208,9 @@ public:
 };
 
 class TextureNodeDecompose : public TextureNode {
-public:
+protected:
 	TextureNodeDecompose(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeDecompose() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52487,8 +53232,9 @@ public:
 };
 
 class TextureNodeValToNor : public TextureNode {
-public:
+protected:
 	TextureNodeValToNor(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeValToNor() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52510,8 +53256,9 @@ public:
 };
 
 class TextureNodeScale : public TextureNode {
-public:
+protected:
 	TextureNodeScale(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeScale() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52533,8 +53280,9 @@ public:
 };
 
 class TextureNodeAt : public TextureNode {
-public:
+protected:
 	TextureNodeAt(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeAt() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52556,8 +53304,9 @@ public:
 };
 
 class TextureNodeTexVoronoi : public TextureNode {
-public:
+protected:
 	TextureNodeTexVoronoi(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexVoronoi() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52579,8 +53328,9 @@ public:
 };
 
 class TextureNodeTexBlend : public TextureNode {
-public:
+protected:
 	TextureNodeTexBlend(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexBlend() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52602,8 +53352,9 @@ public:
 };
 
 class TextureNodeTexMagic : public TextureNode {
-public:
+protected:
 	TextureNodeTexMagic(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexMagic() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52625,8 +53376,9 @@ public:
 };
 
 class TextureNodeTexMarble : public TextureNode {
-public:
+protected:
 	TextureNodeTexMarble(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexMarble() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52648,8 +53400,9 @@ public:
 };
 
 class TextureNodeTexClouds : public TextureNode {
-public:
+protected:
 	TextureNodeTexClouds(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexClouds() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52671,8 +53424,9 @@ public:
 };
 
 class TextureNodeTexWood : public TextureNode {
-public:
+protected:
 	TextureNodeTexWood(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexWood() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52694,8 +53448,9 @@ public:
 };
 
 class TextureNodeTexMusgrave : public TextureNode {
-public:
+protected:
 	TextureNodeTexMusgrave(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexMusgrave() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52717,8 +53472,9 @@ public:
 };
 
 class TextureNodeTexNoise : public TextureNode {
-public:
+protected:
 	TextureNodeTexNoise(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexNoise() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52740,8 +53496,9 @@ public:
 };
 
 class TextureNodeTexStucci : public TextureNode {
-public:
+protected:
 	TextureNodeTexStucci(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexStucci() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52763,8 +53520,9 @@ public:
 };
 
 class TextureNodeTexDistNoise : public TextureNode {
-public:
+protected:
 	TextureNodeTexDistNoise(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeTexDistNoise() : TextureNode(0) { }
 
 	bool is_registered_node_type() {
@@ -52786,8 +53544,9 @@ public:
 };
 
 class ShaderNodeGroup : public ShaderNode {
-public:
+protected:
 	ShaderNodeGroup(PyObject* pyobj) : ShaderNode(pyobj) {}
+public:
 	ShaderNodeGroup() : ShaderNode(0) { }
 
 	NodeTree node_tree() {
@@ -52817,8 +53576,9 @@ public:
 };
 
 class CompositorNodeGroup : public CompositorNode {
-public:
+protected:
 	CompositorNodeGroup(PyObject* pyobj) : CompositorNode(pyobj) {}
+public:
 	CompositorNodeGroup() : CompositorNode(0) { }
 
 	NodeTree node_tree() {
@@ -52848,8 +53608,9 @@ public:
 };
 
 class TextureNodeGroup : public TextureNode {
-public:
+protected:
 	TextureNodeGroup(PyObject* pyobj) : TextureNode(pyobj) {}
+public:
 	TextureNodeGroup() : TextureNode(0) { }
 
 	NodeTree node_tree() {
@@ -52879,8 +53640,9 @@ public:
 };
 
 class NodeCustomGroup : public Node {
-public:
+protected:
 	NodeCustomGroup(PyObject* pyobj) : Node(pyobj) {}
+public:
 	NodeCustomGroup() : Node(0) { }
 
 	NodeTree node_tree() {
@@ -52893,8 +53655,9 @@ public:
 };
 
 class NodeOutputFileSlotFile : public pyObjRef {
-public:
+protected:
 	NodeOutputFileSlotFile(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeOutputFileSlotFile() : pyObjRef(0) { }
 
 	bool use_node_format() {
@@ -52917,8 +53680,9 @@ public:
 };
 
 class NodeOutputFileSlotLayer : public pyObjRef {
-public:
+protected:
 	NodeOutputFileSlotLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeOutputFileSlotLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -52931,15 +53695,17 @@ public:
 };
 
 class NodeInstanceHash : public pyObjRef {
-public:
+protected:
 	NodeInstanceHash(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeInstanceHash() : pyObjRef(0) { }
 
 };
 
 class Object : public ID {
-public:
+protected:
 	Object(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Object() : ID(0) { }
 
 	ID data() {
@@ -53802,8 +54568,8 @@ public:
 	}
 
 	struct camera_fit_coords_result {
-		VFLOAT3 co_return;	/**< The location to aim to be able to see all given points */
-		float scale_return;	/**< The ortho scale to aim to be able to see all given points (if relevant) */
+		VFLOAT3 co_return;
+		float scale_return;
 	};
 
 	camera_fit_coords_result camera_fit_coords(Scene scene, float coordinates[1]);
@@ -53864,9 +54630,9 @@ public:
 	}
 
 	struct ray_cast_result {
-		VFLOAT3 location;	/**< The hit location of this ray cast */
-		VFLOAT3 normal;	/**< The face normal at the ray cast hit location */
-		int index;	/**< The face index, -1 when no intersection is found */
+		VFLOAT3 location;
+		VFLOAT3 normal;
+		int index;
 	};
 
 	ray_cast_result ray_cast(VFLOAT3 start, VFLOAT3 end) {
@@ -53884,9 +54650,9 @@ public:
 	}
 
 	struct closest_point_on_mesh_result {
-		VFLOAT3 location;	/**< The location on the object closest to the point */
-		VFLOAT3 normal;	/**< The face normal at the closest point */
-		int index;	/**< The face index, -1 when no closest point is found */
+		VFLOAT3 location;
+		VFLOAT3 normal;
+		int index;
 	};
 
 	closest_point_on_mesh_result closest_point_on_mesh(VFLOAT3 point, float max_dist = 1.844674e+019f) {
@@ -53944,8 +54710,9 @@ public:
 };
 
 class GameObjectSettings : public pyObjRef {
-public:
+protected:
 	GameObjectSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GameObjectSettings() : pyObjRef(0) { }
 
 	std::map<std::string, Sensor> sensors();
@@ -54368,8 +55135,9 @@ public:
 };
 
 class ObjectBase : public pyObjRef {
-public:
+protected:
 	ObjectBase(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ObjectBase() : pyObjRef(0) { }
 
 	Object object_value() {
@@ -54404,8 +55172,9 @@ public:
 };
 
 class VertexGroup : public pyObjRef {
-public:
+protected:
 	VertexGroup(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	VertexGroup() : pyObjRef(0) { }
 
 	std::string name() {
@@ -54470,8 +55239,9 @@ public:
 };
 
 class MaterialSlot : public pyObjRef {
-public:
+protected:
 	MaterialSlot(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaterialSlot() : pyObjRef(0) { }
 
 	Material material() {
@@ -54512,8 +55282,9 @@ public:
 };
 
 class DupliObject : public pyObjRef {
-public:
+protected:
 	DupliObject(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DupliObject() : pyObjRef(0) { }
 
 	Object object_value() {
@@ -54599,8 +55370,9 @@ public:
 };
 
 class LodLevel : public pyObjRef {
-public:
+protected:
 	LodLevel(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	LodLevel() : pyObjRef(0) { }
 
 	float distance() {
@@ -54649,8 +55421,9 @@ public:
 };
 
 class PointCache : public pyObjRef {
-public:
+protected:
 	PointCache(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PointCache() : pyObjRef(0) { }
 
 	int frame_start() {
@@ -54796,8 +55569,9 @@ public:
 };
 
 class CollisionSettings : public pyObjRef {
-public:
+protected:
 	CollisionSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	CollisionSettings() : pyObjRef(0) { }
 
 	bool use() {
@@ -54898,8 +55672,9 @@ public:
 };
 
 class EffectorWeights : public pyObjRef {
-public:
+protected:
 	EffectorWeights(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	EffectorWeights() : pyObjRef(0) { }
 
 	bool apply_to_hair_growing() {
@@ -55036,8 +55811,9 @@ public:
 };
 
 class FieldSettings : public pyObjRef {
-public:
+protected:
 	FieldSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FieldSettings() : pyObjRef(0) { }
 
 	enum field_type_items_enum {
@@ -55553,8 +56329,9 @@ public:
 };
 
 class GameSoftBodySettings : public pyObjRef {
-public:
+protected:
 	GameSoftBodySettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GameSoftBodySettings() : pyObjRef(0) { }
 
 	float linear_stiffness() {
@@ -55647,8 +56424,9 @@ public:
 };
 
 class SoftBodySettings : public pyObjRef {
-public:
+protected:
 	SoftBodySettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SoftBodySettings() : pyObjRef(0) { }
 
 	float friction() {
@@ -56028,8 +56806,9 @@ public:
 };
 
 class PackedFile : public pyObjRef {
-public:
+protected:
 	PackedFile(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PackedFile() : pyObjRef(0) { }
 
 	int size() {
@@ -56050,8 +56829,9 @@ public:
 };
 
 class PaletteColor : public pyObjRef {
-public:
+protected:
 	PaletteColor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PaletteColor() : pyObjRef(0) { }
 
 	VFLOAT3 color() {
@@ -56080,8 +56860,9 @@ public:
 };
 
 class Palette : public ID {
-public:
+protected:
 	Palette(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Palette() : ID(0) { }
 
 	std::map<std::string, PaletteColor> colors() {
@@ -56090,8 +56871,9 @@ public:
 };
 
 class ParticleTarget : public pyObjRef {
-public:
+protected:
 	ParticleTarget(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleTarget() : pyObjRef(0) { }
 
 	std::string name() {
@@ -56165,8 +56947,9 @@ public:
 };
 
 class SPHFluidSettings : public pyObjRef {
-public:
+protected:
 	SPHFluidSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SPHFluidSettings() : pyObjRef(0) { }
 
 	enum sph_solver_items_enum {
@@ -56347,8 +57130,9 @@ public:
 };
 
 class ParticleHairKey : public pyObjRef {
-public:
+protected:
 	ParticleHairKey(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleHairKey() : pyObjRef(0) { }
 
 	float time() {
@@ -56387,8 +57171,9 @@ public:
 };
 
 class ParticleKey : public pyObjRef {
-public:
+protected:
 	ParticleKey(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleKey() : pyObjRef(0) { }
 
 	VFLOAT3 location() {
@@ -56433,15 +57218,17 @@ public:
 };
 
 class ChildParticle : public pyObjRef {
-public:
+protected:
 	ChildParticle(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ChildParticle() : pyObjRef(0) { }
 
 };
 
 class Particle : public pyObjRef {
-public:
+protected:
 	Particle(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Particle() : pyObjRef(0) { }
 
 	VFLOAT3 location() {
@@ -56599,8 +57386,9 @@ public:
 };
 
 class ParticleDupliWeight : public pyObjRef {
-public:
+protected:
 	ParticleDupliWeight(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleDupliWeight() : pyObjRef(0) { }
 
 	std::string name() {
@@ -56621,8 +57409,9 @@ public:
 };
 
 class ParticleSystem : public pyObjRef {
-public:
+protected:
 	ParticleSystem(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleSystem() : pyObjRef(0) { }
 
 	std::string name() {
@@ -57012,8 +57801,9 @@ public:
 };
 
 class ParticleSettingsTextureSlot : public TextureSlot {
-public:
+protected:
 	ParticleSettingsTextureSlot(PyObject* pyobj) : TextureSlot(pyobj) {}
+public:
 	ParticleSettingsTextureSlot() : TextureSlot(0) { }
 
 	enum texco_items_enum {
@@ -57369,8 +58159,9 @@ public:
 };
 
 class ParticleSettings : public ID {
-public:
+protected:
 	ParticleSettings(PyObject* pyobj) : ID(pyobj) {}
+public:
 	ParticleSettings() : ID(0) { }
 
 	std::map<std::string, ParticleSettingsTextureSlot> texture_slots() {
@@ -59063,8 +59854,9 @@ public:
 };
 
 class Pose : public pyObjRef {
-public:
+protected:
 	Pose(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Pose() : pyObjRef(0) { }
 
 	std::map<std::string, PoseBone> bones();
@@ -59103,8 +59895,9 @@ public:
 };
 
 class PoseBone : public pyObjRef {
-public:
+protected:
 	PoseBone(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PoseBone() : pyObjRef(0) { }
 
 	std::map<std::string, Constraint> constraints() {
@@ -59482,8 +60275,9 @@ public:
 };
 
 class IKParam : public pyObjRef {
-public:
+protected:
 	IKParam(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	IKParam() : pyObjRef(0) { }
 
 	enum prop_iksolver_items_enum {
@@ -59512,8 +60306,9 @@ public:
 };
 
 class Itasc : public IKParam {
-public:
+protected:
 	Itasc(PyObject* pyobj) : IKParam(pyobj) {}
+public:
 	Itasc() : IKParam(0) { }
 
 	float precision() {
@@ -59671,8 +60466,9 @@ public:
 };
 
 class BoneGroup : public pyObjRef {
-public:
+protected:
 	BoneGroup(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BoneGroup() : pyObjRef(0) { }
 
 	std::string name() {
@@ -59739,8 +60535,9 @@ public:
 };
 
 class GameProperty : public pyObjRef {
-public:
+protected:
 	GameProperty(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GameProperty() : pyObjRef(0) { }
 
 	std::string name() {
@@ -59788,8 +60585,9 @@ public:
 };
 
 class GameBooleanProperty : public GameProperty {
-public:
+protected:
 	GameBooleanProperty(PyObject* pyobj) : GameProperty(pyobj) {}
+public:
 	GameBooleanProperty() : GameProperty(0) { }
 
 	bool value() {
@@ -59802,8 +60600,9 @@ public:
 };
 
 class GameIntProperty : public GameProperty {
-public:
+protected:
 	GameIntProperty(PyObject* pyobj) : GameProperty(pyobj) {}
+public:
 	GameIntProperty() : GameProperty(0) { }
 
 	int value() {
@@ -59816,8 +60615,9 @@ public:
 };
 
 class GameFloatProperty : public GameProperty {
-public:
+protected:
 	GameFloatProperty(PyObject* pyobj) : GameProperty(pyobj) {}
+public:
 	GameFloatProperty() : GameProperty(0) { }
 
 	float value() {
@@ -59830,8 +60630,9 @@ public:
 };
 
 class GameTimerProperty : public GameProperty {
-public:
+protected:
 	GameTimerProperty(PyObject* pyobj) : GameProperty(pyobj) {}
+public:
 	GameTimerProperty() : GameProperty(0) { }
 
 	float value() {
@@ -59844,8 +60645,9 @@ public:
 };
 
 class GameStringProperty : public GameProperty {
-public:
+protected:
 	GameStringProperty(PyObject* pyobj) : GameProperty(pyobj) {}
+public:
 	GameStringProperty() : GameProperty(0) { }
 
 	std::string value() {
@@ -59858,8 +60660,9 @@ public:
 };
 
 class RenderEngine : public pyObjRef {
-public:
+protected:
 	RenderEngine(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderEngine() : pyObjRef(0) { }
 
 	bool is_animation() {
@@ -60099,8 +60902,9 @@ public:
 };
 
 class RenderResult : public pyObjRef {
-public:
+protected:
 	RenderResult(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderResult() : pyObjRef(0) { }
 
 	int resolution_x() {
@@ -60129,8 +60933,9 @@ public:
 };
 
 class RenderView : public pyObjRef {
-public:
+protected:
 	RenderView(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderView() : pyObjRef(0) { }
 
 	std::string name() {
@@ -60143,8 +60948,9 @@ public:
 };
 
 class RenderLayer : public pyObjRef {
-public:
+protected:
 	RenderLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -60587,8 +61393,9 @@ public:
 };
 
 class RenderPass : public pyObjRef {
-public:
+protected:
 	RenderPass(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderPass() : pyObjRef(0) { }
 
 	std::string name() {
@@ -60709,8 +61516,9 @@ public:
 };
 
 class BakePixel : public pyObjRef {
-public:
+protected:
 	BakePixel(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BakePixel() : pyObjRef(0) { }
 
 	int primitive_id() {
@@ -60775,8 +61583,9 @@ public:
 };
 
 class RigidBodyWorld : public pyObjRef {
-public:
+protected:
 	RigidBodyWorld(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RigidBodyWorld() : pyObjRef(0) { }
 
 	Group group() {
@@ -60836,10 +61645,10 @@ public:
 	}
 
 	struct convex_sweep_test_result {
-		VFLOAT3 object_location;	/**< The hit location of this sweep test */
-		VFLOAT3 hitpoint;	/**< The hit location of this sweep test */
-		VFLOAT3 normal;	/**< The face normal at the sweep test hit location */
-		int has_hit;	/**< If the function has found collision point, value is 1, otherwise 0 */
+		VFLOAT3 object_location;
+		VFLOAT3 hitpoint;
+		VFLOAT3 normal;
+		int has_hit;
 	};
 
 	convex_sweep_test_result convex_sweep_test(Object object_value, VFLOAT3 start, VFLOAT3 end) {
@@ -60859,8 +61668,9 @@ public:
 };
 
 class RigidBodyObject : public pyObjRef {
-public:
+protected:
 	RigidBodyObject(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RigidBodyObject() : pyObjRef(0) { }
 
 	enum rigidbody_object_type_items_enum {
@@ -61063,8 +61873,9 @@ public:
 };
 
 class RigidBodyConstraint : public pyObjRef {
-public:
+protected:
 	RigidBodyConstraint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RigidBodyConstraint() : pyObjRef(0) { }
 
 	enum rigidbody_constraint_type_items_enum {
@@ -61419,8 +62230,9 @@ public:
 };
 
 class Scene : public ID {
-public:
+protected:
 	Scene(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Scene() : ID(0) { }
 
 	Object camera() {
@@ -61791,10 +62603,10 @@ public:
 
 	struct ray_cast_result {
 		bool result;
-		Object object_value;	/**< Ray cast object */
-		VFLOAT16 matrix;	/**< Matrix */
-		VFLOAT3 location;	/**< The hit location of this ray cast */
-		VFLOAT3 normal;	/**< The face normal at the ray cast hit location */
+		Object object_value;
+		VFLOAT16 matrix;
+		VFLOAT3 location;
+		VFLOAT3 normal;
 	};
 
 	ray_cast_result ray_cast(VFLOAT3 start, VFLOAT3 end) {
@@ -61819,8 +62631,9 @@ public:
 };
 
 class ToolSettings : public pyObjRef {
-public:
+protected:
 	ToolSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ToolSettings() : pyObjRef(0) { }
 
 	Sculpt sculpt();
@@ -62560,8 +63373,9 @@ public:
 };
 
 class UnifiedPaintSettings : public pyObjRef {
-public:
+protected:
 	UnifiedPaintSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UnifiedPaintSettings() : pyObjRef(0) { }
 
 	bool use_unified_size() {
@@ -62670,8 +63484,9 @@ public:
 };
 
 class MeshStatVis : public pyObjRef {
-public:
+protected:
 	MeshStatVis(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MeshStatVis() : pyObjRef(0) { }
 
 	enum stat_type_enum {
@@ -62803,8 +63618,9 @@ public:
 };
 
 class UnitSettings : public pyObjRef {
-public:
+protected:
 	UnitSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UnitSettings() : pyObjRef(0) { }
 
 	enum unit_systems_enum {
@@ -62874,8 +63690,9 @@ public:
 };
 
 class Stereo3dFormat : public pyObjRef {
-public:
+protected:
 	Stereo3dFormat(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Stereo3dFormat() : pyObjRef(0) { }
 
 	enum stereo3d_display_items_enum {
@@ -62980,8 +63797,9 @@ public:
 };
 
 class ImageFormatSettings : public pyObjRef {
-public:
+protected:
 	ImageFormatSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ImageFormatSettings() : pyObjRef(0) { }
 
 	enum image_type_items_enum {
@@ -63260,8 +64078,9 @@ public:
 };
 
 class SceneGameData : public pyObjRef {
-public:
+protected:
 	SceneGameData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SceneGameData() : pyObjRef(0) { }
 
 	int resolution_x() {
@@ -64100,8 +64919,9 @@ public:
 };
 
 class SceneGameRecastData : public pyObjRef {
-public:
+protected:
 	SceneGameRecastData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SceneGameRecastData() : pyObjRef(0) { }
 
 	float cell_size() {
@@ -64210,8 +65030,9 @@ public:
 };
 
 class TransformOrientation : public pyObjRef {
-public:
+protected:
 	TransformOrientation(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TransformOrientation() : pyObjRef(0) { }
 
 	std::array<float, 9> matrix() {
@@ -64232,8 +65053,9 @@ public:
 };
 
 class SelectedUvElement : public PropertyGroup {
-public:
+protected:
 	SelectedUvElement(PyObject* pyobj) : PropertyGroup(pyobj) {}
+public:
 	SelectedUvElement() : PropertyGroup(0) { }
 
 	int element_index() {
@@ -64254,8 +65076,9 @@ public:
 };
 
 class DisplaySafeAreas : public pyObjRef {
-public:
+protected:
 	DisplaySafeAreas(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	DisplaySafeAreas() : pyObjRef(0) { }
 
 	VFLOAT2 title() {
@@ -64292,8 +65115,9 @@ public:
 };
 
 class FFmpegSettings : public pyObjRef {
-public:
+protected:
 	FFmpegSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FFmpegSettings() : pyObjRef(0) { }
 
 	enum ffmpeg_format_items_enum {
@@ -64519,8 +65343,9 @@ public:
 };
 
 class RenderSettings : public pyObjRef {
-public:
+protected:
 	RenderSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RenderSettings() : pyObjRef(0) { }
 
 	ImageFormatSettings image_settings() {
@@ -65748,8 +66573,9 @@ public:
 };
 
 class BakeSettings : public pyObjRef {
-public:
+protected:
 	BakeSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BakeSettings() : pyObjRef(0) { }
 
 	std::string cage_object() {
@@ -65938,8 +66764,9 @@ public:
 };
 
 class SceneRenderLayer : public pyObjRef {
-public:
+protected:
 	SceneRenderLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SceneRenderLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -66394,8 +67221,9 @@ public:
 };
 
 class FreestyleLineSet : public pyObjRef {
-public:
+protected:
 	FreestyleLineSet(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FreestyleLineSet() : pyObjRef(0) { }
 
 	FreestyleLineStyle linestyle() {
@@ -66769,8 +67597,9 @@ public:
 };
 
 class FreestyleModuleSettings : public pyObjRef {
-public:
+protected:
 	FreestyleModuleSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FreestyleModuleSettings() : pyObjRef(0) { }
 
 	Text script();
@@ -66785,8 +67614,9 @@ public:
 };
 
 class FreestyleSettings : public pyObjRef {
-public:
+protected:
 	FreestyleSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FreestyleSettings() : pyObjRef(0) { }
 
 	std::map<std::string, FreestyleModuleSettings> modules() {
@@ -66903,8 +67733,9 @@ public:
 };
 
 class GPUSSAOSettings : public pyObjRef {
-public:
+protected:
 	GPUSSAOSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPUSSAOSettings() : pyObjRef(0) { }
 
 	float factor() {
@@ -66949,8 +67780,9 @@ public:
 };
 
 class GPUDOFSettings : public pyObjRef {
-public:
+protected:
 	GPUDOFSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPUDOFSettings() : pyObjRef(0) { }
 
 	float focus_distance() {
@@ -67011,8 +67843,9 @@ public:
 };
 
 class GPUFXSettings : public pyObjRef {
-public:
+protected:
 	GPUFXSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	GPUFXSettings() : pyObjRef(0) { }
 
 	GPUDOFSettings dof() {
@@ -67041,8 +67874,9 @@ public:
 };
 
 class SceneRenderView : public pyObjRef {
-public:
+protected:
 	SceneRenderView(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SceneRenderView() : pyObjRef(0) { }
 
 	std::string name() {
@@ -67079,8 +67913,9 @@ public:
 };
 
 class Screen : public ID {
-public:
+protected:
 	Screen(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Screen() : ID(0) { }
 
 	Scene scene() {
@@ -67179,8 +68014,9 @@ public:
 };
 
 class Area : public pyObjRef {
-public:
+protected:
 	Area(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Area() : pyObjRef(0) { }
 
 	std::map<std::string, Space> spaces();
@@ -67277,8 +68113,9 @@ public:
 };
 
 class Region : public pyObjRef {
-public:
+protected:
 	Region(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Region() : pyObjRef(0) { }
 
 	int id() {
@@ -67359,8 +68196,9 @@ public:
 };
 
 class View2D : public pyObjRef {
-public:
+protected:
 	View2D(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	View2D() : pyObjRef(0) { }
 
 	VFLOAT2 region_to_view(int x, int y) {
@@ -67379,14 +68217,16 @@ public:
 };
 
 class PaintCurve : public ID {
-public:
+protected:
 	PaintCurve(PyObject* pyobj) : ID(pyobj) {}
+public:
 	PaintCurve() : ID(0) { }
 };
 
 class Paint : public pyObjRef {
-public:
+protected:
 	Paint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Paint() : pyObjRef(0) { }
 
 	Brush brush() {
@@ -67475,8 +68315,9 @@ public:
 };
 
 class Sculpt : public Paint {
-public:
+protected:
 	Sculpt(PyObject* pyobj) : Paint(pyobj) {}
+public:
 	Sculpt() : Paint(0) { }
 
 	std::array<int, 3> radial_symmetry() {
@@ -67659,14 +68500,16 @@ public:
 };
 
 class UvSculpt : public Paint {
-public:
+protected:
 	UvSculpt(PyObject* pyobj) : Paint(pyobj) {}
+public:
 	UvSculpt() : Paint(0) { }
 };
 
 class VertexPaint : public Paint {
-public:
+protected:
 	VertexPaint(PyObject* pyobj) : Paint(pyobj) {}
+public:
 	VertexPaint() : Paint(0) { }
 
 	bool use_normal() {
@@ -67695,8 +68538,9 @@ public:
 };
 
 class ImagePaint : public Paint {
-public:
+protected:
 	ImagePaint(PyObject* pyobj) : Paint(pyobj) {}
+public:
 	ImagePaint() : Paint(0) { }
 
 	bool use_occlude() {
@@ -67864,8 +68708,9 @@ public:
 };
 
 class ParticleEdit : public pyObjRef {
-public:
+protected:
 	ParticleEdit(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleEdit() : pyObjRef(0) { }
 
 	enum particle_edit_hair_brush_items_enum {
@@ -68064,8 +68909,9 @@ public:
 };
 
 class ParticleBrush : public pyObjRef {
-public:
+protected:
 	ParticleBrush(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ParticleBrush() : pyObjRef(0) { }
 
 	int size() {
@@ -68162,8 +69008,9 @@ public:
 };
 
 class Sensor : public pyObjRef {
-public:
+protected:
 	Sensor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Sensor() : pyObjRef(0) { }
 
 	std::string name() {
@@ -68296,14 +69143,16 @@ public:
 };
 
 class AlwaysSensor : public Sensor {
-public:
+protected:
 	AlwaysSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	AlwaysSensor() : Sensor(0) { }
 };
 
 class NearSensor : public Sensor {
-public:
+protected:
 	NearSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	NearSensor() : Sensor(0) { }
 
 	std::string property() {
@@ -68332,8 +69181,9 @@ public:
 };
 
 class MouseSensor : public Sensor {
-public:
+protected:
 	MouseSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	MouseSensor() : Sensor(0) { }
 
 	enum mouse_event_items_enum {
@@ -68424,8 +69274,9 @@ public:
 };
 
 class KeyboardSensor : public Sensor {
-public:
+protected:
 	KeyboardSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	KeyboardSensor() : Sensor(0) { }
 
 	enum event_type_items_enum {
@@ -68676,8 +69527,9 @@ public:
 };
 
 class PropertySensor : public Sensor {
-public:
+protected:
 	PropertySensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	PropertySensor() : Sensor(0) { }
 
 	enum prop_type_items_enum {
@@ -68742,8 +69594,9 @@ public:
 };
 
 class ArmatureSensor : public Sensor {
-public:
+protected:
 	ArmatureSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	ArmatureSensor() : Sensor(0) { }
 
 	enum prop_type_items_enum {
@@ -68799,8 +69652,9 @@ public:
 };
 
 class ActuatorSensor : public Sensor {
-public:
+protected:
 	ActuatorSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	ActuatorSensor() : Sensor(0) { }
 
 	std::string actuator() {
@@ -68813,8 +69667,9 @@ public:
 };
 
 class DelaySensor : public Sensor {
-public:
+protected:
 	DelaySensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	DelaySensor() : Sensor(0) { }
 
 	int delay() {
@@ -68843,8 +69698,9 @@ public:
 };
 
 class CollisionSensor : public Sensor {
-public:
+protected:
 	CollisionSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	CollisionSensor() : Sensor(0) { }
 
 	bool use_pulse() {
@@ -68881,8 +69737,9 @@ public:
 };
 
 class RadarSensor : public Sensor {
-public:
+protected:
 	RadarSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	RadarSensor() : Sensor(0) { }
 
 	std::string property() {
@@ -68939,8 +69796,9 @@ public:
 };
 
 class RandomSensor : public Sensor {
-public:
+protected:
 	RandomSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	RandomSensor() : Sensor(0) { }
 
 	int seed() {
@@ -68953,8 +69811,9 @@ public:
 };
 
 class RaySensor : public Sensor {
-public:
+protected:
 	RaySensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	RaySensor() : Sensor(0) { }
 
 	enum prop_ray_type_items_enum {
@@ -69043,8 +69902,9 @@ public:
 };
 
 class MessageSensor : public Sensor {
-public:
+protected:
 	MessageSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	MessageSensor() : Sensor(0) { }
 
 	std::string subject() {
@@ -69057,8 +69917,9 @@ public:
 };
 
 class JoystickSensor : public Sensor {
-public:
+protected:
 	JoystickSensor(PyObject* pyobj) : Sensor(pyobj) {}
+public:
 	JoystickSensor() : Sensor(0) { }
 
 	int joystick_index() {
@@ -69201,8 +70062,9 @@ public:
 };
 
 class SequenceColorBalanceData : public pyObjRef {
-public:
+protected:
 	SequenceColorBalanceData(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceColorBalanceData() : pyObjRef(0) { }
 
 	VFLOAT3 lift() {
@@ -69255,8 +70117,9 @@ public:
 };
 
 class SequenceElement : public pyObjRef {
-public:
+protected:
 	SequenceElement(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceElement() : pyObjRef(0) { }
 
 	std::string filename() {
@@ -69285,8 +70148,9 @@ public:
 };
 
 class SequenceProxy : public pyObjRef {
-public:
+protected:
 	SequenceProxy(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceProxy() : pyObjRef(0) { }
 
 	std::string directory() {
@@ -69422,14 +70286,16 @@ public:
 };
 
 class SequenceColorBalance : public SequenceColorBalanceData {
-public:
+protected:
 	SequenceColorBalance(PyObject* pyobj) : SequenceColorBalanceData(pyobj) {}
+public:
 	SequenceColorBalance() : SequenceColorBalanceData(0) { }
 };
 
 class SequenceCrop : public pyObjRef {
-public:
+protected:
 	SequenceCrop(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceCrop() : pyObjRef(0) { }
 
 	int max_y() {
@@ -69466,8 +70332,9 @@ public:
 };
 
 class SequenceTransform : public pyObjRef {
-public:
+protected:
 	SequenceTransform(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceTransform() : pyObjRef(0) { }
 
 	int offset_x() {
@@ -69488,8 +70355,9 @@ public:
 };
 
 class Sequence : public pyObjRef {
-public:
+protected:
 	Sequence(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Sequence() : pyObjRef(0) { }
 
 	std::string name() {
@@ -69754,8 +70622,9 @@ public:
 };
 
 class SequenceEditor : public pyObjRef {
-public:
+protected:
 	SequenceEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceEditor() : pyObjRef(0) { }
 
 	std::map<std::string, Sequence> sequences() {
@@ -69832,8 +70701,9 @@ public:
 };
 
 class ImageSequence : public Sequence {
-public:
+protected:
 	ImageSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	ImageSequence() : Sequence(0) { }
 
 	std::string directory() {
@@ -70030,8 +70900,9 @@ public:
 };
 
 class MetaSequence : public Sequence {
-public:
+protected:
 	MetaSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	MetaSequence() : Sequence(0) { }
 
 	std::map<std::string, Sequence> sequences() {
@@ -70180,8 +71051,9 @@ public:
 };
 
 class SceneSequence : public Sequence {
-public:
+protected:
 	SceneSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	SceneSequence() : Sequence(0) { }
 
 	Scene scene() {
@@ -70342,8 +71214,9 @@ public:
 };
 
 class MovieSequence : public Sequence {
-public:
+protected:
 	MovieSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	MovieSequence() : Sequence(0) { }
 
 	int mpeg_preseek() {
@@ -70556,8 +71429,9 @@ public:
 };
 
 class MovieClipSequence : public Sequence {
-public:
+protected:
 	MovieClipSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	MovieClipSequence() : Sequence(0) { }
 
 	bool undistort() {
@@ -70706,8 +71580,9 @@ public:
 };
 
 class MaskSequence : public Sequence {
-public:
+protected:
 	MaskSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	MaskSequence() : Sequence(0) { }
 
 	Mask mask();
@@ -70842,8 +71717,9 @@ public:
 };
 
 class SoundSequence : public Sequence {
-public:
+protected:
 	SoundSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	SoundSequence() : Sequence(0) { }
 
 	Sound sound();
@@ -70906,8 +71782,9 @@ public:
 };
 
 class EffectSequence : public Sequence {
-public:
+protected:
 	EffectSequence(PyObject* pyobj) : Sequence(pyobj) {}
+public:
 	EffectSequence() : Sequence(0) { }
 
 	bool use_deinterlace() {
@@ -71036,8 +71913,9 @@ public:
 };
 
 class AddSequence : public EffectSequence {
-public:
+protected:
 	AddSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	AddSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71058,8 +71936,9 @@ public:
 };
 
 class AdjustmentSequence : public EffectSequence {
-public:
+protected:
 	AdjustmentSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	AdjustmentSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71088,8 +71967,9 @@ public:
 };
 
 class AlphaOverSequence : public EffectSequence {
-public:
+protected:
 	AlphaOverSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	AlphaOverSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71110,8 +71990,9 @@ public:
 };
 
 class AlphaUnderSequence : public EffectSequence {
-public:
+protected:
 	AlphaUnderSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	AlphaUnderSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71132,8 +72013,9 @@ public:
 };
 
 class ColorSequence : public EffectSequence {
-public:
+protected:
 	ColorSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	ColorSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71154,8 +72036,9 @@ public:
 };
 
 class CrossSequence : public EffectSequence {
-public:
+protected:
 	CrossSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	CrossSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71176,8 +72059,9 @@ public:
 };
 
 class GammaCrossSequence : public EffectSequence {
-public:
+protected:
 	GammaCrossSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	GammaCrossSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71198,8 +72082,9 @@ public:
 };
 
 class GlowSequence : public EffectSequence {
-public:
+protected:
 	GlowSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	GlowSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71264,8 +72149,9 @@ public:
 };
 
 class MulticamSequence : public EffectSequence {
-public:
+protected:
 	MulticamSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	MulticamSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71302,8 +72188,9 @@ public:
 };
 
 class MultiplySequence : public EffectSequence {
-public:
+protected:
 	MultiplySequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	MultiplySequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71324,8 +72211,9 @@ public:
 };
 
 class OverDropSequence : public EffectSequence {
-public:
+protected:
 	OverDropSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	OverDropSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71346,8 +72234,9 @@ public:
 };
 
 class SpeedControlSequence : public EffectSequence {
-public:
+protected:
 	SpeedControlSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	SpeedControlSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71388,8 +72277,9 @@ public:
 };
 
 class SubtractSequence : public EffectSequence {
-public:
+protected:
 	SubtractSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	SubtractSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71410,8 +72300,9 @@ public:
 };
 
 class TransformSequence : public EffectSequence {
-public:
+protected:
 	TransformSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	TransformSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71525,8 +72416,9 @@ public:
 };
 
 class WipeSequence : public EffectSequence {
-public:
+protected:
 	WipeSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	WipeSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71609,8 +72501,9 @@ public:
 };
 
 class GaussianBlurSequence : public EffectSequence {
-public:
+protected:
 	GaussianBlurSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	GaussianBlurSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71643,8 +72536,9 @@ public:
 };
 
 class TextSequence : public EffectSequence {
-public:
+protected:
 	TextSequence(PyObject* pyobj) : EffectSequence(pyobj) {}
+public:
 	TextSequence() : EffectSequence(0) { }
 
 	int input_count() {
@@ -71714,8 +72608,9 @@ public:
 };
 
 class SequenceModifier : public pyObjRef {
-public:
+protected:
 	SequenceModifier(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SequenceModifier() : pyObjRef(0) { }
 
 	std::string name() {
@@ -71801,8 +72696,9 @@ public:
 };
 
 class ColorBalanceModifier : public SequenceModifier {
-public:
+protected:
 	ColorBalanceModifier(PyObject* pyobj) : SequenceModifier(pyobj) {}
+public:
 	ColorBalanceModifier() : SequenceModifier(0) { }
 
 	SequenceColorBalanceData color_balance() {
@@ -71819,8 +72715,9 @@ public:
 };
 
 class CurvesModifier : public SequenceModifier {
-public:
+protected:
 	CurvesModifier(PyObject* pyobj) : SequenceModifier(pyobj) {}
+public:
 	CurvesModifier() : SequenceModifier(0) { }
 
 	CurveMapping curve_mapping() {
@@ -71829,8 +72726,9 @@ public:
 };
 
 class HueCorrectModifier : public SequenceModifier {
-public:
+protected:
 	HueCorrectModifier(PyObject* pyobj) : SequenceModifier(pyobj) {}
+public:
 	HueCorrectModifier() : SequenceModifier(0) { }
 
 	CurveMapping curve_mapping() {
@@ -71839,8 +72737,9 @@ public:
 };
 
 class BrightContrastModifier : public SequenceModifier {
-public:
+protected:
 	BrightContrastModifier(PyObject* pyobj) : SequenceModifier(pyobj) {}
+public:
 	BrightContrastModifier() : SequenceModifier(0) { }
 
 	float bright() {
@@ -71861,8 +72760,9 @@ public:
 };
 
 class SmokeDomainSettings : public pyObjRef {
-public:
+protected:
 	SmokeDomainSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SmokeDomainSettings() : pyObjRef(0) { }
 
 	int resolution_max() {
@@ -72217,8 +73117,9 @@ public:
 };
 
 class SmokeFlowSettings : public pyObjRef {
-public:
+protected:
 	SmokeFlowSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SmokeFlowSettings() : pyObjRef(0) { }
 
 	float density() {
@@ -72457,8 +73358,9 @@ public:
 };
 
 class SmokeCollSettings : public pyObjRef {
-public:
+protected:
 	SmokeCollSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SmokeCollSettings() : pyObjRef(0) { }
 
 	enum smoke_coll_type_items_enum {
@@ -72488,8 +73390,9 @@ public:
 };
 
 class Space : public pyObjRef {
-public:
+protected:
 	Space(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Space() : pyObjRef(0) { }
 
 	enum space_type_items_enum {
@@ -72542,8 +73445,9 @@ public:
 };
 
 class SpaceImageEditor : public Space {
-public:
+protected:
 	SpaceImageEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceImageEditor() : Space(0) { }
 
 	Image image() {
@@ -72804,8 +73708,9 @@ public:
 };
 
 class SpaceUVEditor : public pyObjRef {
-public:
+protected:
 	SpaceUVEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	SpaceUVEditor() : pyObjRef(0) { }
 
 	enum sticky_mode_items_enum {
@@ -72973,8 +73878,9 @@ public:
 };
 
 class SpaceSequenceEditor : public Space {
-public:
+protected:
 	SpaceSequenceEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceSequenceEditor() : Space(0) { }
 
 	enum view_type_items_enum {
@@ -73241,8 +74147,9 @@ public:
 };
 
 class SpaceTextEditor : public Space {
-public:
+protected:
 	SpaceTextEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceTextEditor() : Space(0) { }
 
 	Text text();
@@ -73392,8 +74299,9 @@ public:
 };
 
 class FileSelectParams : public pyObjRef {
-public:
+protected:
 	FileSelectParams(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FileSelectParams() : pyObjRef(0) { }
 
 	std::string title() {
@@ -73603,8 +74511,9 @@ public:
 };
 
 class FileBrowserFSMenuEntry : public pyObjRef {
-public:
+protected:
 	FileBrowserFSMenuEntry(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	FileBrowserFSMenuEntry() : pyObjRef(0) { }
 
 	std::string path() {
@@ -73641,8 +74550,9 @@ public:
 };
 
 class SpaceFileBrowser : public Space {
-public:
+protected:
 	SpaceFileBrowser(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceFileBrowser() : Space(0) { }
 
 	FileSelectParams params_value() {
@@ -73703,8 +74613,9 @@ public:
 };
 
 class SpaceOutliner : public Space {
-public:
+protected:
 	SpaceOutliner(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceOutliner() : Space(0) { }
 
 	enum display_mode_items_enum {
@@ -73783,8 +74694,9 @@ public:
 };
 
 class BackgroundImage : public pyObjRef {
-public:
+protected:
 	BackgroundImage(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	BackgroundImage() : pyObjRef(0) { }
 
 	enum bgpic_source_items_enum {
@@ -73992,8 +74904,9 @@ public:
 };
 
 class SpaceView3D : public Space {
-public:
+protected:
 	SpaceView3D(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceView3D() : Space(0) { }
 
 	Object camera() {
@@ -74641,8 +75554,9 @@ public:
 };
 
 class RegionView3D : public pyObjRef {
-public:
+protected:
 	RegionView3D(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	RegionView3D() : pyObjRef(0) { }
 
 	bool lock_rotation() {
@@ -74772,8 +75686,9 @@ public:
 };
 
 class SpaceProperties : public Space {
-public:
+protected:
 	SpaceProperties(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceProperties() : Space(0) { }
 
 	enum buttons_context_items_enum {
@@ -74886,8 +75801,9 @@ public:
 };
 
 class SpaceDopeSheetEditor : public Space {
-public:
+protected:
 	SpaceDopeSheetEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceDopeSheetEditor() : Space(0) { }
 
 	Action action() {
@@ -75019,8 +75935,9 @@ public:
 };
 
 class SpaceGraphEditor : public Space {
-public:
+protected:
 	SpaceGraphEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceGraphEditor() : Space(0) { }
 
 	enum mode_items_enum {
@@ -75226,8 +76143,9 @@ public:
 };
 
 class SpaceNLA : public Space {
-public:
+protected:
 	SpaceNLA(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceNLA() : Space(0) { }
 
 	bool show_seconds() {
@@ -75296,8 +76214,9 @@ public:
 };
 
 class SpaceTimeline : public Space {
-public:
+protected:
 	SpaceTimeline(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceTimeline() : Space(0) { }
 
 	bool show_frame_indicator() {
@@ -75374,8 +76293,9 @@ public:
 };
 
 class SpaceConsole : public Space {
-public:
+protected:
 	SpaceConsole(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceConsole() : Space(0) { }
 
 	int font_size() {
@@ -75424,8 +76344,9 @@ public:
 };
 
 class ConsoleLine : public pyObjRef {
-public:
+protected:
 	ConsoleLine(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ConsoleLine() : pyObjRef(0) { }
 
 	std::string body() {
@@ -75472,8 +76393,9 @@ public:
 };
 
 class SpaceInfo : public Space {
-public:
+protected:
 	SpaceInfo(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceInfo() : Space(0) { }
 
 	bool show_report_debug() {
@@ -75518,8 +76440,9 @@ public:
 };
 
 class SpaceUserPreferences : public Space {
-public:
+protected:
 	SpaceUserPreferences(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceUserPreferences() : Space(0) { }
 
 	enum filter_type_items_enum {
@@ -75556,8 +76479,9 @@ public:
 };
 
 class NodeTreePath : public pyObjRef {
-public:
+protected:
 	NodeTreePath(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	NodeTreePath() : pyObjRef(0) { }
 
 	NodeTree node_tree() {
@@ -75566,8 +76490,9 @@ public:
 };
 
 class SpaceNodeEditor : public Space {
-public:
+protected:
 	SpaceNodeEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceNodeEditor() : Space(0) { }
 
 	enum dummy_items_enum {
@@ -75770,8 +76695,9 @@ public:
 };
 
 class SpaceLogicEditor : public Space {
-public:
+protected:
 	SpaceLogicEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceLogicEditor() : Space(0) { }
 
 	bool show_sensors_selected_objects() {
@@ -75864,8 +76790,9 @@ public:
 };
 
 class SpaceClipEditor : public Space {
-public:
+protected:
 	SpaceClipEditor(PyObject* pyobj) : Space(pyobj) {}
+public:
 	SpaceClipEditor() : Space(0) { }
 
 	MovieClip clip();
@@ -76259,8 +77186,9 @@ public:
 };
 
 class Speaker : public ID {
-public:
+protected:
 	Speaker(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Speaker() : ID(0) { }
 
 	bool muted() {
@@ -76367,8 +77295,9 @@ public:
 };
 
 class TextLine : public pyObjRef {
-public:
+protected:
 	TextLine(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TextLine() : pyObjRef(0) { }
 
 	std::string body() {
@@ -76381,8 +77310,9 @@ public:
 };
 
 class Text : public ID {
-public:
+protected:
 	Text(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Text() : ID(0) { }
 
 	std::string filepath() {
@@ -76479,8 +77409,9 @@ public:
 };
 
 class TimelineMarker : public pyObjRef {
-public:
+protected:
 	TimelineMarker(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	TimelineMarker() : pyObjRef(0) { }
 
 	std::string name() {
@@ -76513,8 +77444,9 @@ public:
 };
 
 class Sound : public ID {
-public:
+protected:
 	Sound(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Sound() : ID(0) { }
 
 	std::string filepath() {
@@ -76573,8 +77505,9 @@ public:
 };
 
 class UILayout : public pyObjRef {
-public:
+protected:
 	UILayout(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UILayout() : pyObjRef(0) { }
 
 	bool active() {
@@ -77543,8 +78476,9 @@ public:
 };
 
 class Panel : public pyObjRef {
-public:
+protected:
 	Panel(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Panel() : pyObjRef(0) { }
 
 	UILayout layout() {
@@ -77704,8 +78638,9 @@ public:
 };
 
 class UIList : public pyObjRef {
-public:
+protected:
 	UIList(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UIList() : pyObjRef(0) { }
 
 	std::string bl_idname() {
@@ -77792,8 +78727,9 @@ public:
 };
 
 class Header : public pyObjRef {
-public:
+protected:
 	Header(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Header() : pyObjRef(0) { }
 
 	UILayout layout() {
@@ -77851,8 +78787,9 @@ public:
 };
 
 class Menu : public pyObjRef {
-public:
+protected:
 	Menu(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Menu() : pyObjRef(0) { }
 
 	UILayout layout() {
@@ -77894,8 +78831,9 @@ public:
 };
 
 class ThemeFontStyle : public pyObjRef {
-public:
+protected:
 	ThemeFontStyle(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeFontStyle() : pyObjRef(0) { }
 
 	int points() {
@@ -77972,8 +78910,9 @@ public:
 };
 
 class ThemeStyle : public pyObjRef {
-public:
+protected:
 	ThemeStyle(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeStyle() : pyObjRef(0) { }
 
 	ThemeFontStyle panel_title() {
@@ -77990,8 +78929,9 @@ public:
 };
 
 class ThemeWidgetColors : public pyObjRef {
-public:
+protected:
 	ThemeWidgetColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeWidgetColors() : pyObjRef(0) { }
 
 	VFLOAT3 outline() {
@@ -78068,8 +79008,9 @@ public:
 };
 
 class ThemeWidgetStateColors : public pyObjRef {
-public:
+protected:
 	ThemeWidgetStateColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeWidgetStateColors() : pyObjRef(0) { }
 
 	VFLOAT3 inner_anim() {
@@ -78130,8 +79071,9 @@ public:
 };
 
 class ThemePanelColors : public pyObjRef {
-public:
+protected:
 	ThemePanelColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemePanelColors() : pyObjRef(0) { }
 
 	VFLOAT4 header() {
@@ -78168,8 +79110,9 @@ public:
 };
 
 class ThemeGradientColors : public pyObjRef {
-public:
+protected:
 	ThemeGradientColors(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeGradientColors() : pyObjRef(0) { }
 
 	bool show_grad() {
@@ -78198,8 +79141,9 @@ public:
 };
 
 class ThemeUserInterface : public pyObjRef {
-public:
+protected:
 	ThemeUserInterface(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeUserInterface() : pyObjRef(0) { }
 
 	ThemeWidgetColors wcol_regular() {
@@ -78344,8 +79288,9 @@ public:
 };
 
 class ThemeSpaceGeneric : public pyObjRef {
-public:
+protected:
 	ThemeSpaceGeneric(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeSpaceGeneric() : pyObjRef(0) { }
 
 	VFLOAT3 back() {
@@ -78474,8 +79419,9 @@ public:
 };
 
 class ThemeSpaceGradient : public pyObjRef {
-public:
+protected:
 	ThemeSpaceGradient(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeSpaceGradient() : pyObjRef(0) { }
 
 	ThemeGradientColors gradients() {
@@ -78600,8 +79546,9 @@ public:
 };
 
 class ThemeSpaceListGeneric : public pyObjRef {
-public:
+protected:
 	ThemeSpaceListGeneric(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeSpaceListGeneric() : pyObjRef(0) { }
 
 	VFLOAT3 list() {
@@ -78638,8 +79585,9 @@ public:
 };
 
 class ThemeView3D : public pyObjRef {
-public:
+protected:
 	ThemeView3D(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeView3D() : pyObjRef(0) { }
 
 	ThemeSpaceGradient space() {
@@ -79160,8 +80108,9 @@ public:
 };
 
 class ThemeGraphEditor : public pyObjRef {
-public:
+protected:
 	ThemeGraphEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeGraphEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -79382,8 +80331,9 @@ public:
 };
 
 class ThemeFileBrowser : public pyObjRef {
-public:
+protected:
 	ThemeFileBrowser(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeFileBrowser() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -79436,8 +80386,9 @@ public:
 };
 
 class ThemeNLAEditor : public pyObjRef {
-public:
+protected:
 	ThemeNLAEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeNLAEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -79586,8 +80537,9 @@ public:
 };
 
 class ThemeDopeSheet : public pyObjRef {
-public:
+protected:
 	ThemeDopeSheet(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeDopeSheet() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -79784,8 +80736,9 @@ public:
 };
 
 class ThemeImageEditor : public pyObjRef {
-public:
+protected:
 	ThemeImageEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeImageEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80114,8 +81067,9 @@ public:
 };
 
 class ThemeSequenceEditor : public pyObjRef {
-public:
+protected:
 	ThemeSequenceEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeSequenceEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80276,8 +81230,9 @@ public:
 };
 
 class ThemeProperties : public pyObjRef {
-public:
+protected:
 	ThemeProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeProperties() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80286,8 +81241,9 @@ public:
 };
 
 class ThemeTextEditor : public pyObjRef {
-public:
+protected:
 	ThemeTextEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeTextEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80384,8 +81340,9 @@ public:
 };
 
 class ThemeTimeline : public pyObjRef {
-public:
+protected:
 	ThemeTimeline(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeTimeline() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80426,8 +81383,9 @@ public:
 };
 
 class ThemeNodeEditor : public pyObjRef {
-public:
+protected:
 	ThemeNodeEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeNodeEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80656,8 +81614,9 @@ public:
 };
 
 class ThemeOutliner : public pyObjRef {
-public:
+protected:
 	ThemeOutliner(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeOutliner() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80682,8 +81641,9 @@ public:
 };
 
 class ThemeInfo : public pyObjRef {
-public:
+protected:
 	ThemeInfo(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeInfo() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80772,8 +81732,9 @@ public:
 };
 
 class ThemeUserPreferences : public pyObjRef {
-public:
+protected:
 	ThemeUserPreferences(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeUserPreferences() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80782,8 +81743,9 @@ public:
 };
 
 class ThemeConsole : public pyObjRef {
-public:
+protected:
 	ThemeConsole(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeConsole() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80840,8 +81802,9 @@ public:
 };
 
 class ThemeLogicEditor : public pyObjRef {
-public:
+protected:
 	ThemeLogicEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeLogicEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -80850,8 +81813,9 @@ public:
 };
 
 class ThemeClipEditor : public pyObjRef {
-public:
+protected:
 	ThemeClipEditor(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeClipEditor() : pyObjRef(0) { }
 
 	ThemeSpaceGeneric space() {
@@ -81064,8 +82028,9 @@ public:
 };
 
 class ThemeBoneColorSet : public pyObjRef {
-public:
+protected:
 	ThemeBoneColorSet(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	ThemeBoneColorSet() : pyObjRef(0) { }
 
 	VFLOAT3 normal() {
@@ -81102,8 +82067,9 @@ public:
 };
 
 class Theme : public pyObjRef {
-public:
+protected:
 	Theme(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Theme() : pyObjRef(0) { }
 
 	std::string name() {
@@ -81234,8 +82200,9 @@ public:
 };
 
 class UserSolidLight : public pyObjRef {
-public:
+protected:
 	UserSolidLight(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserSolidLight() : pyObjRef(0) { }
 
 	bool use() {
@@ -81272,8 +82239,9 @@ public:
 };
 
 class WalkNavigation : public pyObjRef {
-public:
+protected:
 	WalkNavigation(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	WalkNavigation() : pyObjRef(0) { }
 
 	float mouse_speed() {
@@ -81342,8 +82310,9 @@ public:
 };
 
 class UserPreferences : public pyObjRef {
-public:
+protected:
 	UserPreferences(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserPreferences() : pyObjRef(0) { }
 
 	enum user_pref_sections_enum {
@@ -81399,8 +82368,9 @@ public:
 };
 
 class UserPreferencesView : public pyObjRef {
-public:
+protected:
 	UserPreferencesView(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserPreferencesView() : pyObjRef(0) { }
 
 	bool show_tooltips() {
@@ -81793,8 +82763,9 @@ public:
 };
 
 class UserPreferencesEdit : public pyObjRef {
-public:
+protected:
 	UserPreferencesEdit(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserPreferencesEdit() : pyObjRef(0) { }
 
 	enum material_link_items_enum {
@@ -82189,8 +83160,9 @@ public:
 };
 
 class UserPreferencesInput : public pyObjRef {
-public:
+protected:
 	UserPreferencesInput(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserPreferencesInput() : pyObjRef(0) { }
 
 	enum select_mouse_items_enum {
@@ -82576,8 +83548,9 @@ public:
 };
 
 class UserPreferencesFilePaths : public pyObjRef {
-public:
+protected:
 	UserPreferencesFilePaths(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserPreferencesFilePaths() : pyObjRef(0) { }
 
 	bool show_hidden_files_datablocks() {
@@ -82802,8 +83775,9 @@ public:
 };
 
 class UserPreferencesSystem : public pyObjRef {
-public:
+protected:
 	UserPreferencesSystem(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UserPreferencesSystem() : pyObjRef(0) { }
 
 	bool use_international_fonts() {
@@ -83467,8 +84441,9 @@ public:
 };
 
 class Addon : public pyObjRef {
-public:
+protected:
 	Addon(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Addon() : pyObjRef(0) { }
 
 	std::string module() {
@@ -83483,8 +84458,9 @@ public:
 };
 
 class AddonPreferences : public pyObjRef {
-public:
+protected:
 	AddonPreferences(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	AddonPreferences() : pyObjRef(0) { }
 
 	std::string bl_idname() {
@@ -83497,8 +84473,9 @@ public:
 };
 
 class PathCompare : public pyObjRef {
-public:
+protected:
 	PathCompare(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	PathCompare() : pyObjRef(0) { }
 
 	std::string path() {
@@ -83519,8 +84496,9 @@ public:
 };
 
 class VectorFont : public ID {
-public:
+protected:
 	VectorFont(PyObject* pyobj) : ID(pyobj) {}
+public:
 	VectorFont() : ID(0) { }
 
 	std::string filepath() {
@@ -83563,8 +84541,9 @@ public:
 };
 
 class Operator : public pyObjRef {
-public:
+protected:
 	Operator(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Operator() : pyObjRef(0) { }
 
 	std::string name() {
@@ -83684,15 +84663,17 @@ public:
 };
 
 class OperatorProperties : public pyObjRef {
-public:
+protected:
 	OperatorProperties(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	OperatorProperties() : pyObjRef(0) { }
 
 };
 
 class OperatorOptions : public pyObjRef {
-public:
+protected:
 	OperatorOptions(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	OperatorOptions() : pyObjRef(0) { }
 
 	bool is_grab_cursor() {
@@ -83721,8 +84702,9 @@ public:
 };
 
 class OperatorMousePath : public PropertyGroup {
-public:
+protected:
 	OperatorMousePath(PyObject* pyobj) : PropertyGroup(pyobj) {}
+public:
 	OperatorMousePath() : PropertyGroup(0) { }
 
 	VFLOAT2 loc() {
@@ -83743,8 +84725,9 @@ public:
 };
 
 class OperatorFileListElement : public PropertyGroup {
-public:
+protected:
 	OperatorFileListElement(PyObject* pyobj) : PropertyGroup(pyobj) {}
+public:
 	OperatorFileListElement() : PropertyGroup(0) { }
 
 	std::string name() {
@@ -83757,8 +84740,9 @@ public:
 };
 
 class Macro : public pyObjRef {
-public:
+protected:
 	Macro(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Macro() : pyObjRef(0) { }
 
 	std::string name() {
@@ -83864,8 +84848,9 @@ public:
 };
 
 class OperatorMacro : public pyObjRef {
-public:
+protected:
 	OperatorMacro(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	OperatorMacro() : pyObjRef(0) { }
 
 	OperatorProperties properties() {
@@ -83874,8 +84859,9 @@ public:
 };
 
 class Event : public pyObjRef {
-public:
+protected:
 	Event(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Event() : pyObjRef(0) { }
 
 	std::string ascii() {
@@ -84242,8 +85228,9 @@ public:
 };
 
 class Timer : public pyObjRef {
-public:
+protected:
 	Timer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Timer() : pyObjRef(0) { }
 
 	float time_step() {
@@ -84272,8 +85259,9 @@ public:
 };
 
 class UIPopupMenu : public pyObjRef {
-public:
+protected:
 	UIPopupMenu(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UIPopupMenu() : pyObjRef(0) { }
 
 	UILayout layout() {
@@ -84282,8 +85270,9 @@ public:
 };
 
 class UIPieMenu : public pyObjRef {
-public:
+protected:
 	UIPieMenu(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	UIPieMenu() : pyObjRef(0) { }
 
 	UILayout layout() {
@@ -84292,8 +85281,9 @@ public:
 };
 
 class Window : public pyObjRef {
-public:
+protected:
 	Window(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Window() : pyObjRef(0) { }
 
 	Screen screen() {
@@ -84380,8 +85370,9 @@ public:
 };
 
 class Stereo3dDisplay : public pyObjRef {
-public:
+protected:
 	Stereo3dDisplay(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	Stereo3dDisplay() : pyObjRef(0) { }
 
 	enum stereo3d_display_items_enum {
@@ -84479,8 +85470,9 @@ public:
 };
 
 class WindowManager : public ID {
-public:
+protected:
 	WindowManager(PyObject* pyobj) : ID(pyobj) {}
+public:
 	WindowManager() : ID(0) { }
 
 	std::map<std::string, Operator> operators() {
@@ -85164,8 +86156,9 @@ public:
 };
 
 class KeyConfig : public pyObjRef {
-public:
+protected:
 	KeyConfig(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyConfig() : pyObjRef(0) { }
 
 	std::string name() {
@@ -85188,8 +86181,9 @@ public:
 };
 
 class KeyMap : public pyObjRef {
-public:
+protected:
 	KeyMap(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyMap() : pyObjRef(0) { }
 
 	std::string name() {
@@ -85317,8 +86311,9 @@ public:
 };
 
 class KeyMapItem : public pyObjRef {
-public:
+protected:
 	KeyMapItem(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	KeyMapItem() : pyObjRef(0) { }
 
 	std::string idname() {
@@ -85731,8 +86726,9 @@ public:
 };
 
 class World : public ID {
-public:
+protected:
 	World(PyObject* pyobj) : ID(pyobj) {}
+public:
 	World() : ID(0) { }
 
 	AnimData animation_data() {
@@ -85835,8 +86831,9 @@ public:
 };
 
 class WorldLighting : public pyObjRef {
-public:
+protected:
 	WorldLighting(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	WorldLighting() : pyObjRef(0) { }
 
 	bool use_ambient_occlusion() {
@@ -86083,8 +87080,9 @@ public:
 };
 
 class WorldMistSettings : public pyObjRef {
-public:
+protected:
 	WorldMistSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	WorldMistSettings() : pyObjRef(0) { }
 
 	bool use_mist() {
@@ -86154,8 +87152,9 @@ public:
 };
 
 class WorldTextureSlot : public TextureSlot {
-public:
+protected:
 	WorldTextureSlot(PyObject* pyobj) : TextureSlot(pyobj) {}
+public:
 	WorldTextureSlot() : TextureSlot(0) { }
 
 	bool use_map_blend() {
@@ -86257,8 +87256,9 @@ public:
 };
 
 class MovieClip : public ID {
-public:
+protected:
 	MovieClip(PyObject* pyobj) : ID(pyobj) {}
+public:
 	MovieClip() : ID(0) { }
 
 	std::string filepath() {
@@ -86363,8 +87363,9 @@ public:
 };
 
 class MovieClipProxy : public pyObjRef {
-public:
+protected:
 	MovieClipProxy(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieClipProxy() : pyObjRef(0) { }
 
 	bool build_25() {
@@ -86500,8 +87501,9 @@ public:
 };
 
 class MovieClipUser : public pyObjRef {
-public:
+protected:
 	MovieClipUser(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieClipUser() : pyObjRef(0) { }
 
 	int frame_current() {
@@ -86549,15 +87551,17 @@ public:
 };
 
 class MovieClipScopes : public pyObjRef {
-public:
+protected:
 	MovieClipScopes(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieClipScopes() : pyObjRef(0) { }
 
 };
 
 class MovieTrackingSettings : public pyObjRef {
-public:
+protected:
 	MovieTrackingSettings(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingSettings() : pyObjRef(0) { }
 
 	enum speed_items_enum {
@@ -86855,8 +87859,9 @@ public:
 };
 
 class MovieTrackingCamera : public pyObjRef {
-public:
+protected:
 	MovieTrackingCamera(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingCamera() : pyObjRef(0) { }
 
 	enum distortion_model_items_enum {
@@ -86989,8 +87994,9 @@ public:
 };
 
 class MovieTrackingMarker : public pyObjRef {
-public:
+protected:
 	MovieTrackingMarker(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingMarker() : pyObjRef(0) { }
 
 	VFLOAT2 co() {
@@ -87059,8 +88065,9 @@ public:
 };
 
 class MovieTrackingTrack : public pyObjRef {
-public:
+protected:
 	MovieTrackingTrack(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingTrack() : pyObjRef(0) { }
 
 	std::string name() {
@@ -87325,8 +88332,9 @@ public:
 };
 
 class MovieTrackingPlaneMarker : public pyObjRef {
-public:
+protected:
 	MovieTrackingPlaneMarker(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingPlaneMarker() : pyObjRef(0) { }
 
 	int frame() {
@@ -87355,8 +88363,9 @@ public:
 };
 
 class MovieTrackingPlaneTrack : public pyObjRef {
-public:
+protected:
 	MovieTrackingPlaneTrack(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingPlaneTrack() : pyObjRef(0) { }
 
 	std::string name() {
@@ -87401,8 +88410,9 @@ public:
 };
 
 class MovieTrackingStabilization : public pyObjRef {
-public:
+protected:
 	MovieTrackingStabilization(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingStabilization() : pyObjRef(0) { }
 
 	bool use_2d_stabilization() {
@@ -87504,8 +88514,9 @@ public:
 };
 
 class MovieReconstructedCamera : public pyObjRef {
-public:
+protected:
 	MovieReconstructedCamera(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieReconstructedCamera() : pyObjRef(0) { }
 
 	int frame() {
@@ -87534,8 +88545,9 @@ public:
 };
 
 class MovieTrackingReconstruction : public pyObjRef {
-public:
+protected:
 	MovieTrackingReconstruction(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingReconstruction() : pyObjRef(0) { }
 
 	bool is_valid() {
@@ -87560,8 +88572,9 @@ public:
 };
 
 class MovieTrackingObject : public pyObjRef {
-public:
+protected:
 	MovieTrackingObject(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingObject() : pyObjRef(0) { }
 
 	std::string name() {
@@ -87618,8 +88631,9 @@ public:
 };
 
 class MovieTrackingDopesheet : public pyObjRef {
-public:
+protected:
 	MovieTrackingDopesheet(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTrackingDopesheet() : pyObjRef(0) { }
 
 	enum sort_items_enum {
@@ -87674,8 +88688,9 @@ public:
 };
 
 class MovieTracking : public pyObjRef {
-public:
+protected:
 	MovieTracking(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MovieTracking() : pyObjRef(0) { }
 
 	MovieTrackingSettings settings() {
@@ -87720,8 +88735,9 @@ public:
 };
 
 class MaskParent : public pyObjRef {
-public:
+protected:
 	MaskParent(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskParent() : pyObjRef(0) { }
 
 	ID id() {
@@ -87793,8 +88809,9 @@ public:
 };
 
 class MaskSplinePointUW : public pyObjRef {
-public:
+protected:
 	MaskSplinePointUW(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskSplinePointUW() : pyObjRef(0) { }
 
 	float u() {
@@ -87823,8 +88840,9 @@ public:
 };
 
 class MaskSplinePoint : public pyObjRef {
-public:
+protected:
 	MaskSplinePoint(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskSplinePoint() : pyObjRef(0) { }
 
 	VFLOAT2 handle_left() {
@@ -87920,8 +88938,9 @@ public:
 };
 
 class MaskSpline : public pyObjRef {
-public:
+protected:
 	MaskSpline(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskSpline() : pyObjRef(0) { }
 
 	enum spline_offset_mode_items_enum {
@@ -88002,8 +89021,9 @@ public:
 };
 
 class MaskLayer : public pyObjRef {
-public:
+protected:
 	MaskLayer(PyObject* pyobj) : pyObjRef(pyobj) {}
+public:
 	MaskLayer() : pyObjRef(0) { }
 
 	std::string name() {
@@ -88143,8 +89163,9 @@ public:
 };
 
 class Mask : public ID {
-public:
+protected:
 	Mask(PyObject* pyobj) : ID(pyobj) {}
+public:
 	Mask() : ID(0) { }
 
 	std::map<std::string, MaskLayer> layers() {
@@ -88184,8 +89205,9 @@ public:
 
 namespace UniplugBL {
 	Context pyUniplug::context() {
-		return Context(PyObject_GetAttrString(pyobjref, "context"));
-	}
+		Context ctx;
+		ctx.set_pyobjref(PyObject_GetAttrString(pyobjref, "context"));
+		return ctx;	}
 
 	StringProperty Struct::name_property() {
 		CLASS_TYPES_GETTER(StringProperty, "name_property")
