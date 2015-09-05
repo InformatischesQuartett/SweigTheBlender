@@ -92,6 +92,7 @@ copy "..\bin\*.*" "$(BLENDER_ROOT)..\"</Command>
     </CustomBuildStep>
     <PostBuildEvent>
       <Command>python setup.py build
+mkdir "$(BLENDER_ROOT)scripts\addons\fusee\"
 copy "build\lib.win-amd64-3.4\*.*" "$(BLENDER_ROOT)scripts\addons\fusee\"
 copy "..\bin\*.*" "$(BLENDER_ROOT)scripts\addons\fusee\"
 copy "..\bin\*.*" "$(BLENDER_ROOT)..\"</Command>
