@@ -52,7 +52,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Fusee.Math.Core">
-      <HintPath>.\Fusee.Math.Core.dll</HintPath>
+      <HintPath>..\Fusee.Math.Core.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
