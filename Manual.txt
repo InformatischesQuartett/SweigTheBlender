@@ -33,24 +33,18 @@
      permissions for your Blender folder you have to run VisualStudio as administrator.
 
 
-> 4. Build projects 01_CppApi, 02_Swig, and 03_CppWrapper in that order. Use "Project only" when building.
-
-
-> 5. Add all files in \SwigIt\CsWrapper\Generated to the corresponding folder in the 04_CsWrapper project in VisualStudio.
-
-
-> 6. Build projects 04_CsWrapper, 05_CsClient, 06_ManagedBridge, and 07_BlenderPlug in that order. Again, use "Project only".
-
-
-> 7. Set 07_BlenderPlug as the starting project. Open the project properties and go to "Debugging". Set the command property
+> 4. Set 07_BlenderPlug as the starting project. Open the project properties and go to "Debugging". Set the command property
      value to the path of your blender-app.exe and the working directory property value to the path of your Blender folder.
      -> e.g.: D:\Blender Foundation\Blender\blender-app.exe    and    D:\Blender Foundation\Blender\
 
-   
-> 8. Click on the start button. Blender should open. Then, switch to the Scripting view (see upper menu, next to "Help").
+
+> 5. Build the solution.
+
+  
+> 6. Click on the start button. Blender should open. Then, switch to the Scripting view (see upper menu, next to "Help").
 
 
-> 9. You should see a black console. Type:
+> 7. You should see a black console. Type:
 
 	from fusee import uniplug
 	uniplug.init()
@@ -58,10 +52,10 @@
      This executes the code written in the CsClient project.
 
 
-> 10. That's it! You can now start to add your own code to the CsClient.cs. All you have to do is to rebuild the CsClient
-      and BlenderPlug projects and start Blender again (don't forget to close Blender before building).
+> 8. That's it! You can now start to add your own code to the CsClient.cs. All you have to do is to rebuild the CsClient
+     and BlenderPlug projects and start Blender again (don't forget to close Blender before building).
 
-      If you need more than one function (i.e. more than uniplug.init()) you can modify the Main.cpp of the BlenderPlug
-      project and/or the two files ManagedBridge.h and ManagedBridge.cpp and rebuild the corresponding projects.
-      Please do not change the uniplug_blender_api.h unless you know what you're doing.
+     If you need more than one function (i.e. more than uniplug.init()) you can modify the Main.cpp of the BlenderPlug
+     project and/or the two files ManagedBridge.h and ManagedBridge.cpp and rebuild the corresponding projects.
+     Please do not change the uniplug_blender_api.h unless you know what you're doing.
 
