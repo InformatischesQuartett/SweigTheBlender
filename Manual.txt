@@ -38,10 +38,10 @@
      -> e.g.: D:\Blender Foundation\Blender\blender-app.exe    and    D:\Blender Foundation\Blender\
 
 
-> 5. Build the solution.
+> 5. Build the solution or click on the start button.
 
   
-> 6. Click on the start button. Blender should open. Then, switch to the Scripting view (see upper menu, next to "Help").
+> 6. Clicking on the start button should open Blender. Then, switch to the Scripting View (see upper menu, next to "Help").
 
 
 > 7. You should see a black console. Type:
